@@ -34,7 +34,7 @@
     }
   ],
   "questions": [
-    { "id": "community_name", "label": "社區名稱", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" }, 
+    { "id": "community_name", "label": "社區名稱", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" },
     { "id": "handover_date", "label": "交接日期", "type": "date", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
     { "id": "outgoing_manager", "label": "交接人（離任經理）", "type": "text", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
     { "id": "incoming_manager", "label": "接任人（新任經理）", "type": "text", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
