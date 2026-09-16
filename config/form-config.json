@@ -35,6 +35,10 @@
   ],
   "questions": [
     { "id": "community_name", "label": "社區名稱", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" },
+    { "id": "community_name", "label": "社區戶數（使照戶數／實際戶數）", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" },
+    { "id": "community_name", "label": "汽車車位數量", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" },
+    { "id": "community_name", "label": "機車位數量", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" },
+    { "id": "community_name", "label": "是否有來賓停車位（若無請填「無」／若有請填位置）", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" },  
     { "id": "handover_date", "label": "交接日期", "type": "date", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
     { "id": "outgoing_manager", "label": "交接人（離任經理）", "type": "text", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
     { "id": "incoming_manager", "label": "接任人（新任經理）", "type": "text", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
