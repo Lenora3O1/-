@@ -1,0 +1,62 @@
+{
+  "title": "社區交接清冊",
+  "subtitle": "物業管理部門",
+  "pages": [
+    {
+      "id": "page_basic",
+      "title": "社區基本資料",
+      "description": "請先填寫本次交接的社區與人員基本資訊。"
+    },
+    {
+      "id": "page_finance",
+      "title": "社區財務狀況",
+      "description": "請確認現金、銀行存款及待收待付款項。"
+    },
+    {
+      "id": "page_tasks",
+      "title": "社區代辦事項",
+      "description": "請記錄目前尚未完成、需要持續追蹤的工作。"
+    },
+    {
+      "id": "page_access",
+      "title": "鑰匙與門禁",
+      "description": "請盤點鑰匙、門禁卡及其他門禁相關事項。"
+    },
+    {
+      "id": "page_facilities",
+      "title": "公共設施與設備",
+      "description": "請記錄公共設施現況與待修繕、異常設備。"
+    },
+    {
+      "id": "page_handover",
+      "title": "工作交接與備註",
+      "description": "補充重要聯絡窗口、其他交接資訊與備註。"
+    }
+  ],
+  "questions": [
+    { "id": "community_name", "label": "社區名稱", "type": "text", "required": true, "pageId": "page_basic", "group": "社區基本資訊" },
+    { "id": "handover_date", "label": "交接日期", "type": "date", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
+    { "id": "outgoing_manager", "label": "交接人（離任經理）", "type": "text", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
+    { "id": "incoming_manager", "label": "接任人（新任經理）", "type": "text", "required": true, "pageId": "page_basic", "group": "交接人員資訊" },
+    { "id": "witness", "label": "在場見證人", "type": "text", "required": false, "pageId": "page_basic", "group": "交接人員資訊" },
+
+    { "id": "cash_balance", "label": "現金結餘（元）", "type": "number", "required": true, "pageId": "page_finance", "group": "現金與銀行" },
+    { "id": "bank_balance", "label": "銀行存款餘額（元）", "type": "number", "required": false, "pageId": "page_finance", "group": "現金與銀行" },
+    { "id": "outstanding_receivables", "label": "未收款項說明", "type": "textarea", "required": false, "pageId": "page_finance", "group": "待收與待付款項" },
+    { "id": "outstanding_payables", "label": "未付款項說明", "type": "textarea", "required": false, "pageId": "page_finance", "group": "待收與待付款項" },
+
+    { "id": "pending_tasks", "label": "尚未完成事項", "type": "textarea", "required": false, "pageId": "page_tasks", "group": "待辦工作" },
+    { "id": "task_followup", "label": "需持續追蹤事項", "type": "textarea", "required": false, "pageId": "page_tasks", "group": "待辦工作" },
+    { "id": "task_deadlines", "label": "重要期限／預定日期", "type": "textarea", "required": false, "pageId": "page_tasks", "group": "待辦工作" },
+
+    { "id": "keys_count", "label": "鑰匙數量", "type": "number", "required": false, "pageId": "page_access", "group": "鑰匙與門禁盤點" },
+    { "id": "access_cards_count", "label": "門禁卡／感應卡數量", "type": "number", "required": false, "pageId": "page_access", "group": "鑰匙與門禁盤點" },
+    { "id": "keys_notes", "label": "鑰匙／門禁卡其他說明", "type": "textarea", "required": false, "pageId": "page_access", "group": "其他門禁事項" },
+
+    { "id": "facilities_list", "label": "公共設施現況清單", "type": "textarea", "required": false, "pageId": "page_facilities", "group": "設施現況" },
+    { "id": "equipment_issues", "label": "待修繕／異常設備說明", "type": "textarea", "required": false, "pageId": "page_facilities", "group": "異常與待修繕" },
+
+    { "id": "important_contacts", "label": "重要聯絡窗口（廠商／管委會等）", "type": "textarea", "required": false, "pageId": "page_handover", "group": "聯絡窗口" },
+    { "id": "remarks", "label": "其他備註", "type": "textarea", "required": false, "pageId": "page_handover", "group": "其他資訊" }
+  ]
+}
