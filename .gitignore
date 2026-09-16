@@ -1,0 +1,7 @@
+node_modules/
+data.sqlite
+.env
+uploads/templates/*
+!uploads/templates/.gitkeep
+generated/*
+!generated/.gitkeep
