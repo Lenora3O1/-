@@ -1,0 +1,23 @@
+[
+  { "id": "community_name", "label": "社區名稱", "type": "text", "required": true, "section": "基本資料" },
+  { "id": "handover_date", "label": "交接日期", "type": "date", "required": true, "section": "基本資料" },
+  { "id": "outgoing_manager", "label": "交接人（離任經理）", "type": "text", "required": true, "section": "基本資料" },
+  { "id": "incoming_manager", "label": "接任人（新任經理）", "type": "text", "required": true, "section": "基本資料" },
+  { "id": "witness", "label": "在場見證人", "type": "text", "required": false, "section": "基本資料" },
+
+  { "id": "cash_balance", "label": "現金結餘（元）", "type": "number", "required": true, "section": "財務" },
+  { "id": "bank_balance", "label": "銀行存款餘額（元）", "type": "number", "required": false, "section": "財務" },
+  { "id": "outstanding_receivables", "label": "未收款項說明", "type": "textarea", "required": false, "section": "財務" },
+  { "id": "outstanding_payables", "label": "未付款項說明", "type": "textarea", "required": false, "section": "財務" },
+
+  { "id": "keys_count", "label": "鑰匙數量", "type": "number", "required": false, "section": "鑰匙與門禁" },
+  { "id": "access_cards_count", "label": "門禁卡/感應卡數量", "type": "number", "required": false, "section": "鑰匙與門禁" },
+  { "id": "keys_notes", "label": "鑰匙/門禁卡其他說明", "type": "textarea", "required": false, "section": "鑰匙與門禁" },
+
+  { "id": "facilities_list", "label": "公共設施現況清單", "type": "textarea", "required": false, "section": "公共設施" },
+  { "id": "equipment_issues", "label": "待修繕/異常設備說明", "type": "textarea", "required": false, "section": "公共設施" },
+
+  { "id": "pending_tasks", "label": "尚未完成事項", "type": "textarea", "required": false, "section": "工作交接" },
+  { "id": "important_contacts", "label": "重要聯絡窗口（廠商/管委會等）", "type": "textarea", "required": false, "section": "工作交接" },
+  { "id": "remarks", "label": "備註", "type": "textarea", "required": false, "section": "工作交接" }
+]
