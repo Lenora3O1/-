@@ -144,7 +144,20 @@ function ensureTenant() {
 const defaultTenant = ensureTenant();
 
 const brandDefaults = {title: defaultTenant.name || '物業管理公司', subtitle: '物業管理公司', loginTitle: '公司管理員登入', loginHint: '這裡是公司專屬管理後台。登入後可管理人員、社區與公司資料。', intro: '這裡只管理您所屬公司的資料。', logoText: ''};
-db.prepare(`UPDATE tenants SET brand_title=COALESCE(NULLIF(brand_title,''),?), brand_subtitle=COALESCE(NULLIF(brand_subtitle,''),?), brand_login_title=COALESCE(NULLIF(brand_login_title,''),?), brand_login_hint=COALESCE(NULLIF(brand_login_hint,''),?), brand_intro=COALESCE(NULLIF(brand_intro,''),?), brand_logo_text=COALESCE(brand_logo_text,'')`).run(brandDefaults.title,brandDefaults.subtitle,brandDefaults.loginTitle,brandDefaults.loginHint,brandDefaults.intro,brandDefaults.logoText);
+db.prepare(`UPDATE tenants SET
+  brand_title=COALESCE(NULLIF(brand_title,''), @title),
+  brand_subtitle=COALESCE(NULLIF(brand_subtitle,''), @subtitle),
+  brand_login_title=COALESCE(NULLIF(brand_login_title,''), @loginTitle),
+  brand_login_hint=COALESCE(NULLIF(brand_login_hint,''), @loginHint),
+  brand_intro=COALESCE(NULLIF(brand_intro,''), @intro),
+  brand_logo_text=COALESCE(brand_logo_text,'')
+`).run({
+  title: brandDefaults.title,
+  subtitle: brandDefaults.subtitle,
+  loginTitle: brandDefaults.loginTitle,
+  loginHint: brandDefaults.loginHint,
+  intro: brandDefaults.intro
+});
 
 // Migrate all V3 staff/drafts/submissions/templates into the first tenant.
 db.prepare("UPDATE staff_users SET tenant_id=? WHERE tenant_id IS NULL").run(defaultTenant.id);
