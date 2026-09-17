@@ -55,6 +55,7 @@ addColumnIfMissing('submissions', 'updated_at', "TEXT DEFAULT ''");
 addColumnIfMissing('staff_users', 'role', "TEXT DEFAULT 'staff'");
 addColumnIfMissing('staff_users', 'tenant_id', "INTEGER");
 addColumnIfMissing('staff_users', 'last_login_at', "TEXT DEFAULT ''");
+addColumnIfMissing('staff_users', 'admin_level', "TEXT DEFAULT 'admin'");
 addColumnIfMissing('submissions', 'tenant_id', "INTEGER");
 addColumnIfMissing('submissions', 'community_id', "INTEGER");
 addColumnIfMissing('drafts', 'tenant_id', "INTEGER");
@@ -102,6 +103,9 @@ addColumnIfMissing('tenants', 'brand_accent_dark', "TEXT DEFAULT '#204F42'");
 addColumnIfMissing('tenants', 'brand_bg', "TEXT DEFAULT '#F7F7F4'");
 addColumnIfMissing('tenants', 'brand_panel', "TEXT DEFAULT '#FFFFFF'");
 
+// Company admin hierarchy: the first company_admin of each company is the owner.
+db.prepare("UPDATE staff_users SET admin_level='owner' WHERE role='company_admin' AND id IN (SELECT MIN(id) FROM staff_users WHERE role='company_admin' AND tenant_id IS NOT NULL GROUP BY tenant_id)").run();
+
 function makePassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -117,8 +121,8 @@ function verifyPassword(password, salt, hash) {
 function createStaff(employeeId, name, password, role='staff', tenantId=null) {
   const now = new Date().toISOString();
   const { salt, hash } = makePassword(password);
-  const info = db.prepare(`INSERT INTO staff_users (employee_id,name,password_hash,password_salt,is_active,created_at,updated_at,role,tenant_id) VALUES (?,?,?,?,1,?,?,?,?)`)
-    .run(employeeId.trim(), name.trim(), hash, salt, now, now, role, tenantId);
+  const info = db.prepare(`INSERT INTO staff_users (employee_id,name,password_hash,password_salt,is_active,created_at,updated_at,role,tenant_id,admin_level) VALUES (?,?,?,?,1,?,?,?,?,?)`)
+    .run(employeeId.trim(), name.trim(), hash, salt, now, now, role, tenantId, role==='company_admin'?'owner':'');
   return info.lastInsertRowid;
 }
 
