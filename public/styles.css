@@ -153,3 +153,6 @@ a.link { color: var(--accent-dark); text-decoration: underline; cursor: pointer;
 
 /* V4.1.6：各公司白標／系統美編 */
 .color-row{display:flex;gap:8px;align-items:center}.color-row input[type=color]{width:52px;height:42px;padding:3px;border:1px solid var(--line);border-radius:8px;background:#fff}.color-row .code-input{flex:1}.brand-preview{margin-top:20px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--preview-bg,#F7F7F4);color:var(--ink)}.brand-preview-top{background:var(--preview-dark,#204F42);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;gap:12px;align-items:baseline}.brand-preview-top span{opacity:.8;font-size:.85rem}.brand-preview-body{background:var(--preview-panel,#fff);margin:18px;max-width:460px;border:1px solid var(--line);border-radius:10px;padding:22px}.brand-preview-body h3{margin:0 0 8px}.brand-preview-body p{color:var(--ink-soft);min-height:42px}.brand-preview-body button{background:var(--preview-accent,#2F6F5E)}
+
+.admin-manage-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border,#d9e3df)}
+.admin-manage-row:last-child{border-bottom:0}
