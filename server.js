@@ -58,10 +58,40 @@ function readFormConfig() {
       : legacyToConfig();
     fs.writeFileSync(FORM_CONFIG_PATH, JSON.stringify(initial, null, 2), 'utf-8');
   }
-  return JSON.parse(fs.readFileSync(FORM_CONFIG_PATH, 'utf-8'));
+  return normalizeFormConfig(JSON.parse(fs.readFileSync(FORM_CONFIG_PATH, 'utf-8')));
+}
+function normalizeFormConfig(config) {
+  if (!config || !Array.isArray(config.pages)) return config;
+  config.pages.forEach((p) => {
+    if (!Array.isArray(p.groups)) p.groups = [];
+    const seen = new Set();
+    p.groups = p.groups.map(g => String(g || '').trim()).filter(g => g && !seen.has(g) && (seen.add(g), true));
+    (config.questions || []).filter(q => q.pageId === p.id).forEach(q => {
+      const g = String(q.group || '填寫資料').trim() || '填寫資料';
+      if (!seen.has(g)) { seen.add(g); p.groups.push(g); }
+    });
+    if (!p.groups.length) p.groups.push('填寫資料');
+  });
+  const pageOrder = new Map(config.pages.map((p, i) => [p.id, i]));
+  const groupOrder = new Map();
+  config.pages.forEach(p => p.groups.forEach((g, i) => groupOrder.set(`${p.id}||${g}`, i)));
+  config.questions = (config.questions || []).map((q, i) => ({...q, __oldOrder: i}));
+  config.questions.sort((a,b) => {
+    const pa = pageOrder.has(a.pageId) ? pageOrder.get(a.pageId) : 9999;
+    const pb = pageOrder.has(b.pageId) ? pageOrder.get(b.pageId) : 9999;
+    if (pa !== pb) return pa - pb;
+    const ga = String(a.group || '填寫資料').trim() || '填寫資料';
+    const gb = String(b.group || '填寫資料').trim() || '填寫資料';
+    const oa = groupOrder.get(`${a.pageId}||${ga}`) ?? 9999;
+    const ob = groupOrder.get(`${b.pageId}||${gb}`) ?? 9999;
+    if (oa !== ob) return oa - ob;
+    return a.__oldOrder - b.__oldOrder;
+  });
+  config.questions.forEach(q => delete q.__oldOrder);
+  return config;
 }
 function writeFormConfig(config) {
-  fs.writeFileSync(FORM_CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+  fs.writeFileSync(FORM_CONFIG_PATH, JSON.stringify(normalizeFormConfig(config), null, 2), 'utf-8');
 }
 function readQuestions() { return readFormConfig().questions; }
 
