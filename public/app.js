@@ -4,6 +4,7 @@ async function api(url,options={}){const r=await fetch(url,{credentials:'same-or
 async function boot(){
   formConfig=await api('/api/form-config'); document.title=formConfig.title||'社區交接清冊';
   document.querySelector('.brand').textContent=formConfig.title||'社區交接清冊';document.querySelector('.sub').textContent=formConfig.subtitle||'';
+  const u=formConfig.uiTexts||{}; if(document.querySelector('#loginView h2')&&u.staffLoginTitle)document.querySelector('#loginView h2').textContent='👤 '+u.staffLoginTitle; if(document.querySelector('#loginView .hint')&&u.staffLoginHint)document.querySelector('#loginView .hint').textContent=u.staffLoginHint;
   const s=await api('/api/staff/session'); if(s.loggedIn){if(s.user.role==='company_admin'){ location.href='company.html'; return; } showHome(s.user)} else showLogin();
 }
 function showLogin(){ $('loginView').style.display='block';$('homeView').style.display='none';$('editorView').style.display='none';$('staffTop').style.display='none'; }
