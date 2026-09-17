@@ -48,14 +48,99 @@ function renderTemplates(){
 }
 async function activateTemplate(id){try{await api(`/api/admin/templates/${id}/activate`,{method:'POST'});await loadTemplates();renderTemplates()}catch(err){alert(err.message)}}
 async function deleteTemplate(id){if(!confirm('確定刪除這份平台制式範本嗎？已經複製到各公司的版本不會受影響。'))return;try{await api(`/api/admin/templates/${id}`,{method:'DELETE'});await loadTemplates();renderTemplates()}catch(err){alert(err.message)}}
-function renderFormDesigner(){const el=$('tab-form'),c=state.config||{},u=c.uiTexts||{};el.innerHTML=`<div class="panel designer-intro"><div class="section-title">🛠 中央表單設計中心</div><p><strong>平台方在這裡提供標準雛型。</strong> 目前先把內容清楚分成「交接清冊」與「工作日誌」，未來還可以持續新增其他公司內部制式表單。各公司使用後，可以在自己的公司後台建立公司版本。</p></div>
-<div class="panel"><div class="section-title">📋 交接清冊</div><p><strong>目前正式使用中的交接清冊。</strong> 這套表單維持現有設定，不與工作日誌混用。</p><div class="card-actions"><button class="secondary" onclick="document.getElementById('checklistDesigner').scrollIntoView({behavior:'smooth'})">進入交接清冊設計</button></div></div>
-<div class="panel"><div class="section-title">📝 工作日誌</div><p>日後新增的「經理工作回報」會在這裡獨立管理。它會有自己的題目、草稿、送出紀錄與 Word／PDF 輸出，不會改動目前的交接清冊。</p><div class="msg inline-msg">🚧 工作日誌模組預留中，下一階段建立。</div></div>
-<div class="panel"><div class="section-title">📄 公司內部制式表格</div><p>平台提供文件雛型，各公司管理員可自行採用。採用後會變成公司自己的版本，可改名稱、更新檔案、設為公司預設或刪除。</p><button class="secondary" onclick="document.querySelector('[data-tab=templates]').click()">前往制式範本管理</button></div>
-<div id="checklistDesigner"><div class="panel"><div class="section-title">⚙️ 交接清冊雛型設定</div><p class="hint">以下就是目前已經確認 OK 的交接清冊設定。修改前建議先確認現有版本；工作日誌不會共用這些題目。</p></div>
-<div class="panel"><div class="section-title">① 網站基本名稱</div><div class="field"><label>網站標題</label><input id="siteTitle" value="${escapeAttr(c.title||'社區交接清冊')}"></div><div class="field"><label>副標題</label><input id="siteSubtitle" value="${escapeAttr(c.subtitle||'')}"></div></div>
-<div class="panel"><div class="section-title">② 公司管理後台／登入頁顯示文字</div><p class="hint">這些就是公司管理員畫面上看到的標題與說明文字。修改後按最下面的「儲存全部交接清冊設定」即可套用。</p><div class="editor-grid"><div><label>公司後台標題</label><input id="companyTitle" value="${escapeAttr(u.companyTitle||'公司管理後台')}"></div><div><label>公司後台副標題</label><input id="companySubtitle" value="${escapeAttr(u.companySubtitle||'物業管理公司')}"></div><div class="wide"><label>公司後台首頁說明</label><textarea id="companyIntro">${escapeHtml(u.companyIntro||'')}</textarea></div><div><label>公司管理員登入標題</label><input id="companyLoginTitle" value="${escapeAttr(u.companyLoginTitle||'公司管理員登入')}"></div><div><label>公司管理員登入說明</label><textarea id="companyLoginHint">${escapeHtml(u.companyLoginHint||'')}</textarea></div><div><label>一般人員登入標題</label><input id="staffLoginTitle" value="${escapeAttr(u.staffLoginTitle||'物業人員登入')}"></div><div><label>一般人員登入說明</label><textarea id="staffLoginHint">${escapeHtml(u.staffLoginHint||'')}</textarea></div></div></div>
-<div class="panel"><div class="section-title">③ 交接清冊頁面／母標題管理</div><div id="pagesEditor"></div><button class="secondary" onclick="addPage()">＋ 新增頁面</button></div><div class="panel"><div class="section-title">④ 交接清冊題目／子標題管理</div><p class="hint">題目會依「所在頁面＋子標題」自動分組顯示。題目 ↑↓ 只調整同一子標題內的順序。</p><div id="questionsEditor"></div><button class="secondary" onclick="addQuestion()">＋ 新增題目</button></div><div class="save-bar"><button onclick="saveFormConfig()">💾 儲存全部交接清冊設定</button><span id="formSaveMsg"></span></div></div>`;renderPagesEditor();renderQuestionsEditor()}
+function renderFormDesigner(){
+  const el=$('tab-form'),c=state.config||{},u=c.uiTexts||{};
+  el.innerHTML=`
+  <div class="panel designer-intro">
+    <div class="section-title">🛠 中央表單設計中心</div>
+    <p><strong>這裡是平台提供標準雛型的地方。</strong> 目前先分成「交接清冊」與「工作日誌」兩套獨立表單；未來可以再增加其他平台制式表單。各公司採用後，再於自己的公司後台建立公司版本。</p>
+  </div>
+
+  <div class="module-card-grid">
+    <div class="panel module-card">
+      <div class="module-card-icon">📋</div>
+      <div class="module-card-body">
+        <div class="section-title">交接清冊</div>
+        <p><strong>目前正式使用中的交接清冊。</strong><br>這套表單已確認可以正常使用，以下設計內容維持獨立，不與工作日誌共用。</p>
+        <button class="secondary" onclick="toggleDesigner('checklistDesigner','checklistBtn')" id="checklistBtn">進入交接清冊設計</button>
+      </div>
+    </div>
+
+    <div class="panel module-card">
+      <div class="module-card-icon">📝</div>
+      <div class="module-card-body">
+        <div class="section-title">工作日誌</div>
+        <p><strong>社區經理日常工作回報。</strong><br>未來會像交接清冊一樣，由平台設定表單，經理登入後選擇社區並填寫、儲存草稿、送出回報。</p>
+        <button class="secondary" onclick="toggleDesigner('journalDesigner','journalBtn')" id="journalBtn">進入工作日誌設計</button>
+      </div>
+    </div>
+
+    <div class="panel module-card">
+      <div class="module-card-icon">📄</div>
+      <div class="module-card-body">
+        <div class="section-title">公司內部制式表格</div>
+        <p><strong>平台提供文件雛型。</strong><br>各公司管理員可以自行採用、修改、更新或刪除，成為自己的公司制式文件。</p>
+        <button class="secondary" onclick="document.querySelector('[data-tab=templates]').click()">前往制式範本管理</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="journalDesigner" class="designer-collapsible" style="display:none">
+    <div class="panel">
+      <div class="section-title">⚙️ 工作日誌設計</div>
+      <p><strong>這裡先建立工作日誌的獨立入口。</strong> 下一階段會在此加入與交接清冊相同的表單設計功能，例如頁面、子標題、題目、回答格式、必填設定與排序。</p>
+      <div class="msg inline-msg">🚧 工作日誌填寫系統尚未啟用。現在先整理總後台架構，完成後再接上經理前台與公司後台。</div>
+    </div>
+  </div>
+
+  <div id="checklistDesigner" class="designer-collapsible" style="display:none">
+    <div class="panel">
+      <div class="section-title">⚙️ 交接清冊雛型設定</div>
+      <p class="hint">以下就是目前已經確認 OK 的交接清冊設定。這裡的修改只會作用於交接清冊；工作日誌使用另一套獨立設定。</p>
+    </div>
+    <div class="panel">
+      <div class="section-title">① 網站基本名稱</div>
+      <div class="field"><label>網站標題</label><input id="siteTitle" value="${escapeAttr(c.title||'社區交接清冊')}"></div>
+      <div class="field"><label>副標題</label><input id="siteSubtitle" value="${escapeAttr(c.subtitle||'')}"></div>
+    </div>
+    <div class="panel">
+      <div class="section-title">② 公司管理後台／登入頁顯示文字</div>
+      <p class="hint">這些就是公司管理員畫面上看到的標題與說明文字。修改後按最下面的「儲存全部交接清冊設定」即可套用。</p>
+      <div class="editor-grid">
+        <div><label>公司後台標題</label><input id="companyTitle" value="${escapeAttr(u.companyTitle||'公司管理後台')}"></div>
+        <div><label>公司後台副標題</label><input id="companySubtitle" value="${escapeAttr(u.companySubtitle||'物業管理公司')}"></div>
+        <div class="wide"><label>公司後台首頁說明</label><textarea id="companyIntro">${escapeHtml(u.companyIntro||'')}</textarea></div>
+        <div><label>公司管理員登入標題</label><input id="companyLoginTitle" value="${escapeAttr(u.companyLoginTitle||'公司管理員登入')}"></div>
+        <div><label>公司管理員登入說明</label><textarea id="companyLoginHint">${escapeHtml(u.companyLoginHint||'')}</textarea></div>
+        <div><label>一般人員登入標題</label><input id="staffLoginTitle" value="${escapeAttr(u.staffLoginTitle||'物業人員登入')}"></div>
+        <div><label>一般人員登入說明</label><textarea id="staffLoginHint">${escapeHtml(u.staffLoginHint||'')}</textarea></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="section-title">③ 交接清冊頁面／母標題管理</div>
+      <div id="pagesEditor"></div>
+      <button class="secondary" onclick="addPage()">＋ 新增頁面</button>
+    </div>
+    <div class="panel">
+      <div class="section-title">④ 交接清冊題目／子標題管理</div>
+      <p class="hint">題目會依「所在頁面＋子標題」自動分組顯示。題目 ↑↓ 只調整同一子標題內的順序。</p>
+      <div id="questionsEditor"></div>
+      <button class="secondary" onclick="addQuestion()">＋ 新增題目</button>
+    </div>
+    <div class="save-bar"><button onclick="saveFormConfig()">💾 儲存全部交接清冊設定</button><span id="formSaveMsg"></span></div>
+  </div>`;
+  renderPagesEditor();renderQuestionsEditor();
+}
+function toggleDesigner(id,buttonId){
+  const box=$(id),btn=$(buttonId);if(!box)return;
+  const opening=box.style.display==='none'||!box.style.display;
+  document.querySelectorAll('.designer-collapsible').forEach(x=>{if(x!==box)x.style.display='none'});
+  document.querySelectorAll('.module-card button').forEach(x=>{if(x!==btn)x.textContent=x.id==='journalBtn'?'進入工作日誌設計':'進入交接清冊設計'});
+  box.style.display=opening?'block':'none';
+  if(btn)btn.textContent=opening?(id==='journalDesigner'?'收起工作日誌設計':'收起交接清冊設計'):(id==='journalDesigner'?'進入工作日誌設計':'進入交接清冊設計');
+  if(opening)box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function renderPagesEditor(){const w=$('pagesEditor');w.innerHTML=state.config.pages.map((p,i)=>`<div class="page-card"><div class="move-buttons"><button class="icon-btn" onclick="movePage(${i},-1)" ${i===0?'disabled':''}>↑</button><button class="icon-btn" onclick="movePage(${i},1)" ${i===state.config.pages.length-1?'disabled':''}>↓</button></div><div class="page-number">第 ${i+1} 頁</div><div class="grow"><label>頁面／母標題</label><input value="${escapeAttr(p.title)}" oninput="state.config.pages[${i}].title=this.value"><label>頁面說明</label><input value="${escapeAttr(p.description||'')}" oninput="state.config.pages[${i}].description=this.value"></div><button class="danger" onclick="removePage(${i})">刪除頁面</button></div>`).join('')}
 function groupNamesForPage(pageId){const seen=[];for(const q of state.config.questions){if(q.pageId===pageId){const g=q.group||'填寫資料';if(!seen.includes(g))seen.push(g)}}return seen}
 function renderQuestionsEditor(){const w=$('questionsEditor');const pages=state.config.pages;w.innerHTML=pages.map((p,pi)=>{const groups=groupNamesForPage(p.id);const qs=groups.flatMap(g=>state.config.questions.map((q,i)=>({q,i})).filter(x=>x.q.pageId===p.id&&(x.q.group||'填寫資料')===g));return `<div class="designer-page-block"><h3>第 ${pi+1} 頁｜${escapeHtml(p.title)}</h3>${groups.map(g=>`<div class="group-block"><div class="group-heading"><strong>▰ ${escapeHtml(g)}</strong><span>${qs.filter(x=>(x.q.group||'填寫資料')===g).length} 題</span></div>${qs.filter(x=>(x.q.group||'填寫資料')===g).map(x=>questionCard(x.i,x.q,qs.filter(y=>(y.q.group||'填寫資料')===g).map(y=>y.i))).join('')}</div>`).join('')||'<div class="empty">這一頁目前沒有題目。</div>'}</div>`}).join('')}
