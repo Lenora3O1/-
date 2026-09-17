@@ -1,7 +1,7 @@
 {
   "name": "handover-checklist-system",
-  "version": "3.0.0",
-  "description": "物業社區交接清冊｜員編登入、草稿暫存、續填與 Word 產製系統",
+  "version": "4.0.0",
+  "description": "物業社區交接清冊｜多租戶、分層權限、員編登入、草稿續填與 Word 產製系統",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
