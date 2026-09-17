@@ -1,11 +1,12 @@
 let formConfig=null, answers={}, currentPage=0, draftId=null, draftCommunityId=null, autosaveTimer=null, saving=false, dirty=false, communities=[];
 const $=id=>document.getElementById(id);
 async function api(url,options={}){const r=await fetch(url,{credentials:'same-origin',...options});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'操作失敗');return d;}
+async function applyStaffBranding(){try{const b=await api('/api/staff/branding');document.title=b.title||document.title;const root=document.documentElement;root.style.setProperty('--accent',b.accent);root.style.setProperty('--accent-dark',b.accentDark);root.style.setProperty('--bg',b.bg);root.style.setProperty('--panel',b.panel);if(document.querySelector('.brand'))document.querySelector('.brand').textContent=b.logoText||b.title||'物業管理平台';if(document.querySelector('.sub'))document.querySelector('.sub').textContent=b.subtitle||'';}catch(e){console.warn('Staff branding load skipped',e)}}
 async function boot(){
   formConfig=await api('/api/form-config'); document.title=formConfig.title||'社區交接清冊';
   document.querySelector('.brand').textContent=formConfig.title||'社區交接清冊';document.querySelector('.sub').textContent=formConfig.subtitle||'';
   const u=formConfig.uiTexts||{}; if(document.querySelector('#loginView h2')&&u.staffLoginTitle)document.querySelector('#loginView h2').textContent='👤 '+u.staffLoginTitle; if(document.querySelector('#loginView .hint')&&u.staffLoginHint)document.querySelector('#loginView .hint').textContent=u.staffLoginHint;
-  const s=await api('/api/staff/session'); if(s.loggedIn){if(s.user.role==='company_admin'){ location.href='company.html'; return; } showHome(s.user)} else showLogin();
+  const s=await api('/api/staff/session'); if(s.loggedIn){if(s.user.role==='company_admin'){ location.href='company.html'; return; } await applyStaffBranding(); showHome(s.user)} else showLogin();
 }
 function showLogin(){ $('loginView').style.display='block';$('homeView').style.display='none';$('editorView').style.display='none';$('staffTop').style.display='none'; }
 function showCompanyHint(user){ location.href='company.html'; }
@@ -44,7 +45,7 @@ function validateCurrentPage(){savePageAnswers();const missing=getPageQuestions(
 async function onSubmit(e){e.preventDefault();if(!validateCurrentPage())return;await saveNow(true);const btn=$('submitBtn');btn.disabled=true;btn.textContent='送出中…';try{const r=await api(`/api/staff/drafts/${draftId}/submit`,{method:'POST'});showMessage(`🎉 交接清冊已正式送出！單號：${r.id}`,'success');draftId=null;draftCommunityId=null;answers={};currentPage=0;setTimeout(()=>showHomeAfterSubmit(),900)}catch(err){showMessage(err.message,'error');btn.disabled=false;btn.textContent='確認並正式送出 ✓'}}
 function showHomeAfterSubmit(){api('/api/staff/session').then(s=>showHome(s.user)).catch(showLogin)}
 async function backHome(){await saveNow(true);const s=await api('/api/staff/session');showHome(s.user)}
-$('staffLoginForm').addEventListener('submit',async e=>{e.preventDefault();const m=$('loginMsg');try{const r=await api('/api/staff/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({employeeId:$('employeeId').value,password:$('employeePassword').value})});if(r.user.role==='company_admin'){location.href='company.html';return}showHome(r.user)}catch(err){m.innerHTML=`<div class="msg error">${escapeHtml(err.message)}</div>`}});
+$('staffLoginForm').addEventListener('submit',async e=>{e.preventDefault();const m=$('loginMsg');try{const r=await api('/api/staff/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({employeeId:$('employeeId').value,password:$('employeePassword').value})});if(r.user.role==='company_admin'){location.href='company.html';return}await applyStaffBranding();showHome(r.user)}catch(err){m.innerHTML=`<div class="msg error">${escapeHtml(err.message)}</div>`}});
 $('staffLogout').addEventListener('click',async()=>{if(dirty&&draftId)await saveNow(true);await api('/api/staff/logout',{method:'POST'});showLogin();$('employeePassword').value='';});
 function showMessage(text,type){$('msgArea').innerHTML=`<div class="msg ${type}">${escapeHtml(text)}</div>`;setTimeout(()=>{if($('msgArea'))$('msgArea').innerHTML=''},5000)}
 function formatDate(s){return new Date(s).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
