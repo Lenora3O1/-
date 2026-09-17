@@ -28,6 +28,7 @@ app.use(session({
 
 function requireSuperAdmin(req,res,next){ if(req.session?.isAdmin) return next(); return res.status(401).json({error:'尚未登入總後臺或登入已過期'}); }
 function requireStaff(req,res,next){ if(req.session?.employeeId && req.session?.tenantId) return next(); return res.status(401).json({error:'請先登入員編帳號'}); }
+function requireStaffFiller(req,res,next){ if(req.session?.employeeId && req.session?.tenantId && req.session?.role!=='company_admin') return next(); return res.status(403).json({error:'公司管理員請使用公司管理後台，一般人員才可填寫交接清冊'}); }
 function requireCompanyAdmin(req,res,next){ if(req.session?.employeeId && req.session?.tenantId && req.session?.role==='company_admin') return next(); return res.status(403).json({error:'只有公司管理員可以使用這個後臺'}); }
 function tenantId(req){ return Number(req.session.tenantId); }
 function legacyToConfig(){
@@ -90,17 +91,17 @@ app.get('/api/staff/communities',requireStaff,(req,res)=>{
 });
 
 // ===== 員工草稿 =====
-app.get('/api/staff/drafts',requireStaff,(req,res)=>{
+app.get('/api/staff/drafts',requireStaffFiller,(req,res)=>{
   const rows=db.prepare('SELECT id,created_at,updated_at,current_page,data,community_id FROM drafts WHERE employee_id=? AND tenant_id=? ORDER BY updated_at DESC').all(req.session.employeeId,tenantId(req));
   res.json(rows.map(r=>({id:r.id,created_at:r.created_at,updated_at:r.updated_at,current_page:r.current_page,community_id:r.community_id,data:JSON.parse(r.data)})));
 });
-app.post('/api/staff/drafts',requireStaff,(req,res)=>{
+app.post('/api/staff/drafts',requireStaffFiller,(req,res)=>{
   const data=cleanData(req.body?.data); const page=Math.max(0,Number(req.body?.current_page)||0); const communityId=req.body?.community_id?Number(req.body.community_id):null;
   if(communityId && !getAccessibleCommunity(req,communityId)) return res.status(403).json({error:'您沒有這個社區的填寫權限'});
   const t=now(); const info=db.prepare('INSERT INTO drafts (employee_id,tenant_id,community_id,created_at,updated_at,current_page,data) VALUES (?,?,?,?,?,?,?)').run(req.session.employeeId,tenantId(req),communityId,t,t,page,JSON.stringify(data));
   res.json({success:true,id:info.lastInsertRowid,updated_at:t});
 });
-app.put('/api/staff/drafts/:id',requireStaff,(req,res)=>{
+app.put('/api/staff/drafts/:id',requireStaffFiller,(req,res)=>{
   const id=Number(req.params.id); const draft=db.prepare('SELECT * FROM drafts WHERE id=? AND employee_id=? AND tenant_id=?').get(id,req.session.employeeId,tenantId(req));
   if(!draft) return res.status(404).json({error:'找不到這份草稿'});
   const data=cleanData(req.body?.data); const page=Math.max(0,Number(req.body?.current_page)||0); const communityId=req.body?.community_id===undefined?draft.community_id:(req.body.community_id?Number(req.body.community_id):null);
@@ -108,13 +109,13 @@ app.put('/api/staff/drafts/:id',requireStaff,(req,res)=>{
   const t=now(); db.prepare('UPDATE drafts SET updated_at=?,current_page=?,data=?,community_id=? WHERE id=? AND employee_id=? AND tenant_id=?').run(t,page,JSON.stringify(data),communityId,id,req.session.employeeId,tenantId(req));
   res.json({success:true,updated_at:t});
 });
-app.get('/api/staff/drafts/:id',requireStaff,(req,res)=>{
+app.get('/api/staff/drafts/:id',requireStaffFiller,(req,res)=>{
   const r=db.prepare('SELECT * FROM drafts WHERE id=? AND employee_id=? AND tenant_id=?').get(Number(req.params.id),req.session.employeeId,tenantId(req));
   if(!r) return res.status(404).json({error:'找不到這份草稿'});
   res.json({id:r.id,created_at:r.created_at,updated_at:r.updated_at,current_page:r.current_page,community_id:r.community_id,data:JSON.parse(r.data)});
 });
-app.delete('/api/staff/drafts/:id',requireStaff,(req,res)=>{db.prepare('DELETE FROM drafts WHERE id=? AND employee_id=? AND tenant_id=?').run(Number(req.params.id),req.session.employeeId,tenantId(req));res.json({success:true});});
-app.post('/api/staff/drafts/:id/submit',requireStaff,(req,res)=>{
+app.delete('/api/staff/drafts/:id',requireStaffFiller,(req,res)=>{db.prepare('DELETE FROM drafts WHERE id=? AND employee_id=? AND tenant_id=?').run(Number(req.params.id),req.session.employeeId,tenantId(req));res.json({success:true});});
+app.post('/api/staff/drafts/:id/submit',requireStaffFiller,(req,res)=>{
   const draft=db.prepare('SELECT * FROM drafts WHERE id=? AND employee_id=? AND tenant_id=?').get(Number(req.params.id),req.session.employeeId,tenantId(req));
   if(!draft) return res.status(404).json({error:'找不到這份草稿'});
   const answers=JSON.parse(draft.data); const questions=readQuestions(); const missing=questions.filter(q=>q.required&&!String(answers[q.id]??'').trim());
@@ -123,7 +124,7 @@ app.post('/api/staff/drafts/:id/submit',requireStaff,(req,res)=>{
   db.prepare('DELETE FROM drafts WHERE id=? AND employee_id=? AND tenant_id=?').run(draft.id,req.session.employeeId,tenantId(req));
   res.json({success:true,id:info.lastInsertRowid});
 });
-app.post('/api/submissions',requireStaff,(req,res)=>{
+app.post('/api/submissions',requireStaffFiller,(req,res)=>{
   const answers=cleanData(req.body); const missing=readQuestions().filter(q=>q.required&&!String(answers[q.id]??'').trim());
   if(missing.length)return res.status(400).json({error:'有必填欄位未填寫',missing:missing.map(q=>q.label)});
   const t=now(); const info=db.prepare('INSERT INTO submissions (created_at,updated_at,employee_id,employee_name,tenant_id,data) VALUES (?,?,?,?,?,?)').run(t,t,req.session.employeeId,req.session.employeeName,tenantId(req),JSON.stringify(answers));
@@ -136,7 +137,7 @@ app.post('/api/admin/logout',(req,res)=>{req.session.destroy(()=>res.json({succe
 app.get('/api/admin/session',(req,res)=>res.json({isAdmin:!!req.session?.isAdmin}));
 
 app.get('/api/admin/tenants',requireSuperAdmin,(req,res)=>{
-  const rows=db.prepare(`SELECT t.*, (SELECT COUNT(*) FROM staff_users u WHERE u.tenant_id=t.id) staff_count, (SELECT COUNT(*) FROM communities c WHERE c.tenant_id=t.id) community_count FROM tenants t ORDER BY t.id DESC`).all();
+  const rows=db.prepare(`SELECT t.*, (SELECT COUNT(*) FROM staff_users u WHERE u.tenant_id=t.id) staff_count, (SELECT COUNT(*) FROM communities c WHERE c.tenant_id=t.id) community_count, (SELECT u.employee_id FROM staff_users u WHERE u.tenant_id=t.id AND u.role='company_admin' ORDER BY u.id LIMIT 1) admin_employee_id, (SELECT u.name FROM staff_users u WHERE u.tenant_id=t.id AND u.role='company_admin' ORDER BY u.id LIMIT 1) admin_name, (SELECT u.last_login_at FROM staff_users u WHERE u.tenant_id=t.id AND u.role='company_admin' ORDER BY u.id LIMIT 1) admin_last_login_at, (SELECT u.is_active FROM staff_users u WHERE u.tenant_id=t.id AND u.role='company_admin' ORDER BY u.id LIMIT 1) admin_is_active FROM tenants t ORDER BY t.id DESC`).all();
   res.json(rows);
 });
 app.post('/api/admin/tenants',requireSuperAdmin,(req,res)=>{
@@ -154,6 +155,8 @@ app.post('/api/admin/tenants',requireSuperAdmin,(req,res)=>{
   try{res.json({success:true,...tx()});}catch(e){res.status(500).json({error:'建立公司失敗，請確認資料是否重複'});}
 });
 app.put('/api/admin/tenants/:id',requireSuperAdmin,(req,res)=>{const id=Number(req.params.id);const t=db.prepare('SELECT * FROM tenants WHERE id=?').get(id);if(!t)return res.status(404).json({error:'找不到公司'});const name=String(req.body?.name||t.name).trim();const status=req.body?.status===undefined?t.status:(req.body.status?'active':'inactive');if(!name)return res.status(400).json({error:'公司名稱不可空白'});db.prepare('UPDATE tenants SET name=?,status=?,updated_at=? WHERE id=?').run(name,status,now(),id);res.json({success:true});});
+app.get('/api/admin/tenants/:id/admin',requireSuperAdmin,(req,res)=>{const id=Number(req.params.id);const u=db.prepare("SELECT id,employee_id,name,is_active,last_login_at,created_at FROM staff_users WHERE tenant_id=? AND role='company_admin' ORDER BY id LIMIT 1").get(id);if(!u)return res.status(404).json({error:'找不到公司管理員'});res.json({admin:u,password_viewable:false});});
+app.post('/api/admin/tenants/:id/admin/reset-password',requireSuperAdmin,(req,res)=>{const id=Number(req.params.id);const password=String(req.body?.password||'');if(password.length<4)return res.status(400).json({error:'新密碼至少 4 碼'});const u=db.prepare("SELECT id FROM staff_users WHERE tenant_id=? AND role='company_admin' ORDER BY id LIMIT 1").get(id);if(!u)return res.status(404).json({error:'找不到公司管理員'});const p=db.makePassword(password);db.prepare('UPDATE staff_users SET password_hash=?,password_salt=?,updated_at=? WHERE id=?').run(p.hash,p.salt,now(),u.id);res.json({success:true});});
 
 app.get('/api/admin/submissions',requireSuperAdmin,(req,res)=>{
   const rows=db.prepare(`SELECT s.id,s.created_at,s.updated_at,s.employee_id,s.employee_name,s.tenant_id,s.community_id,s.data,t.name tenant_name,c.name community_name FROM submissions s LEFT JOIN tenants t ON t.id=s.tenant_id LEFT JOIN communities c ON c.id=s.community_id ORDER BY s.id DESC`).all();
