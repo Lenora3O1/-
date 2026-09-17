@@ -1,121 +1,51 @@
-let formConfig = null;
-let answers = {};
-let currentPage = 0;
-
-async function loadForm() {
-  const res = await fetch('/api/form-config');
-  if (!res.ok) throw new Error('無法載入表單設定');
-  formConfig = await res.json();
-  document.title = formConfig.title || '社區交接清冊';
-  document.querySelector('.brand').textContent = formConfig.title || '社區交接清冊';
-  document.querySelector('.sub').textContent = formConfig.subtitle || '';
-  renderPage();
+let formConfig=null, answers={}, currentPage=0, draftId=null, autosaveTimer=null, saving=false, dirty=false;
+const $=id=>document.getElementById(id);
+async function api(url,options={}){const r=await fetch(url,{credentials:'same-origin',...options});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'操作失敗');return d;}
+async function boot(){
+  formConfig=await api('/api/form-config'); document.title=formConfig.title||'社區交接清冊';
+  document.querySelector('.brand').textContent=formConfig.title||'社區交接清冊';document.querySelector('.sub').textContent=formConfig.subtitle||'';
+  const s=await api('/api/staff/session'); if(s.loggedIn) showHome(s.user); else showLogin();
 }
-
-function getPageQuestions(pageId) {
-  return formConfig.questions.filter(q => q.pageId === pageId);
+function showLogin(){ $('loginView').style.display='block';$('homeView').style.display='none';$('editorView').style.display='none';$('staffTop').style.display='none'; }
+function showHome(user){ $('loginView').style.display='none';$('homeView').style.display='block';$('editorView').style.display='none';$('staffTop').style.display='flex';$('staffName').textContent=`${user.name}（${user.employee_id}）`;loadHome(); }
+async function loadHome(){
+ const drafts=await api('/api/staff/drafts'); const el=$('staffHome');
+ let cards=drafts.length?drafts.map(d=>{const pct=Math.min(99,Math.round(((d.current_page+1)/formConfig.pages.length)*100));const community=d.data.community_name||'尚未填寫社區名稱';return `<div class="draft-card"><div><div class="draft-title">🏠 ${escapeHtml(community)}</div><div class="hint">最後儲存：${formatDate(d.updated_at)}　｜　目前第 ${Math.min(d.current_page+1,formConfig.pages.length)} / ${formConfig.pages.length} 頁</div><div class="progress-mini"><span style="width:${pct}%"></span></div></div><div class="draft-actions"><button onclick="continueDraft(${d.id})">繼續填寫</button><button class="danger" onclick="deleteDraft(${d.id})">刪除草稿</button></div></div>`}).join(''):'<div class="empty">目前沒有未完成的交接紀錄。</div>';
+ el.innerHTML=`<div class="panel home-head"><div><div class="eyebrow">歡迎回來</div><h1>我的交接紀錄</h1><p class="hint">不用一次填完。忙到一半可以直接離開，系統會保存進度。</p></div><button class="big-action" onclick="newDraft()">＋ 開始新的交接</button></div><div class="panel"><div class="section-title">🟡 尚未完成</div>${cards}</div>`;
 }
-
-function groupedQuestions(pageId) {
-  const groups = [];
-  const map = {};
-  for (const q of getPageQuestions(pageId)) {
-    const key = q.group || '填寫資料';
-    if (!map[key]) { map[key] = { title: key, questions: [] }; groups.push(map[key]); }
-    map[key].questions.push(q);
-  }
-  return groups;
+async function newDraft(){const r=await api('/api/staff/drafts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:{},current_page:0})});draftId=r.id;answers={};currentPage=0;showEditor();}
+async function continueDraft(id){const d=await api(`/api/staff/drafts/${id}`);draftId=d.id;answers=d.data||{};currentPage=Math.max(0,Math.min(Number(d.current_page)||0,formConfig.pages.length-1));showEditor();}
+async function deleteDraft(id){if(!confirm('確定刪除這份未完成草稿嗎？刪除後無法復原。'))return;await api(`/api/staff/drafts/${id}`,{method:'DELETE'});loadHome();}
+function showEditor(){ $('homeView').style.display='none';$('editorView').style.display='block';dirty=false;renderPage();window.scrollTo({top:0}); }
+function getPageQuestions(pageId){return formConfig.questions.filter(q=>q.pageId===pageId)}
+function groupedQuestions(pageId){const groups=[],map={};for(const q of getPageQuestions(pageId)){const key=q.group||'填寫資料';if(!map[key]){map[key]={title:key,questions:[]};groups.push(map[key])}map[key].questions.push(q)}return groups;}
+function renderPage(){
+ const form=$('checklistForm'),page=formConfig.pages[currentPage],total=formConfig.pages.length;form.innerHTML='';renderProgress();
+ $('draftBar').innerHTML=`<div><strong>🟡 草稿模式</strong><span id="saveStatus">${dirty?'尚未儲存':'已儲存'}</span></div><div class="draft-bar-actions"><button type="button" class="secondary" onclick="saveNow()">💾 儲存草稿</button><button type="button" class="secondary" onclick="backHome()">↩ 我的交接</button></div>`;
+ const header=document.createElement('div');header.className='page-header';header.innerHTML=`<div class="eyebrow">第 ${currentPage+1} 頁／共 ${total} 頁</div><h1>${escapeHtml(page.title)}</h1>${page.description?`<p>${escapeHtml(page.description)}</p>`:''}`;form.appendChild(header);
+ for(const group of groupedQuestions(page.id)){const panel=document.createElement('section');panel.className='panel';const title=document.createElement('div');title.className='section-title';title.textContent=group.title;panel.appendChild(title);for(const q of group.questions)panel.appendChild(renderField(q));form.appendChild(panel)}
+ const nav=document.createElement('div');nav.className='form-nav';nav.innerHTML=`<button type="button" class="secondary" id="prevBtn" ${currentPage===0?'disabled':''}>← 上一頁</button>${currentPage<total-1?'<button type="button" id="nextBtn">儲存並下一頁 →</button>':'<button type="submit" id="submitBtn">確認並正式送出 ✓</button>'}`;form.appendChild(nav);
+ form.querySelectorAll('input,textarea,select').forEach(input=>{input.value=answers[input.name]??'';input.addEventListener('input',()=>markDirty(input.name,input.value));input.addEventListener('change',()=>markDirty(input.name,input.value));});
+ $('prevBtn').addEventListener('click',async()=>{savePageAnswers();await saveNow(true);currentPage--;renderPage();window.scrollTo({top:0,behavior:'smooth'})});
+ const next=$('nextBtn');if(next)next.addEventListener('click',async()=>{if(!validateCurrentPage())return;savePageAnswers();await saveNow(true);currentPage++;renderPage();window.scrollTo({top:0,behavior:'smooth'})});
+ form.onsubmit=onSubmit;
 }
+function renderProgress(){$('progressArea').innerHTML=formConfig.pages.map((p,i)=>`<div class="progress-step ${i===currentPage?'current':i<currentPage?'done':''}"><span>${i<currentPage?'✓':i+1}</span><small>${escapeHtml(p.title)}</small></div>`).join('<div class="progress-line"></div>')}
+function renderField(q){const wrap=document.createElement('div');wrap.className='field';const label=document.createElement('label');label.setAttribute('for',q.id);label.innerHTML=escapeHtml(q.label)+(q.required?'<span class="req">*</span>':'');wrap.appendChild(label);let input;if(q.type==='textarea')input=document.createElement('textarea');else{input=document.createElement('input');input.type=['number','date'].includes(q.type)?q.type:'text'}input.id=q.id;input.name=q.id;input.required=!!q.required;wrap.appendChild(input);return wrap}
+function markDirty(k,v){answers[k]=v;dirty=true;$('saveStatus').textContent='儲存中…';clearTimeout(autosaveTimer);autosaveTimer=setTimeout(()=>saveNow(true),900)}
+function savePageAnswers(){const form=$('checklistForm');for(const[k,v]of new FormData(form).entries())answers[k]=v;dirty=true}
+async function saveNow(silent=false){if(!draftId||saving)return;savePageAnswers();saving=true;try{const r=await api(`/api/staff/drafts/${draftId}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:answers,current_page:currentPage})});dirty=false;if($('saveStatus'))$('saveStatus').textContent=`✓ 已儲存 ${new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}`;if(!silent)showMessage('草稿已儲存，下次登入可以繼續填寫。','success')}catch(e){if(!silent)showMessage(e.message,'error');if($('saveStatus'))$('saveStatus').textContent='⚠ 儲存失敗'}finally{saving=false}}
+function validateCurrentPage(){savePageAnswers();const missing=getPageQuestions(formConfig.pages[currentPage].id).filter(q=>q.required&&!String(answers[q.id]??'').trim());if(missing.length){showMessage(`請先完成必填欄位：${missing.map(q=>q.label).join('、')}`,'error');const first=$(missing[0].id);if(first)first.focus();return false}return true}
+async function onSubmit(e){e.preventDefault();if(!validateCurrentPage())return;await saveNow(true);const btn=$('submitBtn');btn.disabled=true;btn.textContent='送出中…';try{const r=await api(`/api/staff/drafts/${draftId}/submit`,{method:'POST'});showMessage(`🎉 交接清冊已正式送出！單號：${r.id}`,'success');draftId=null;answers={};currentPage=0;setTimeout(()=>showHomeAfterSubmit(),900)}catch(err){showMessage(err.message,'error');btn.disabled=false;btn.textContent='確認並正式送出 ✓'}}
+function showHomeAfterSubmit(){api('/api/staff/session').then(s=>showHome(s.user)).catch(showLogin)}
+async function backHome(){await saveNow(true);const s=await api('/api/staff/session');showHome(s.user)}
+$('staffLoginForm').addEventListener('submit',async e=>{e.preventDefault();const m=$('loginMsg');try{const r=await api('/api/staff/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({employeeId:$('employeeId').value,password:$('employeePassword').value})});showHome(r.user)}catch(err){m.innerHTML=`<div class="msg error">${escapeHtml(err.message)}</div>`}});
+$('staffLogout').addEventListener('click',async()=>{if(dirty&&draftId)await saveNow(true);await api('/api/staff/logout',{method:'POST'});showLogin();$('employeePassword').value='';});
+function showMessage(text,type){$('msgArea').innerHTML=`<div class="msg ${type}">${escapeHtml(text)}</div>`;setTimeout(()=>{if($('msgArea'))$('msgArea').innerHTML=''},5000)}
+function formatDate(s){return new Date(s).toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
+function escapeHtml(str){return String(str??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+window.newDraft=newDraft;window.continueDraft=continueDraft;window.deleteDraft=deleteDraft;window.saveNow=saveNow;window.backHome=backHome;
+window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&draftId&&dirty)saveNow(true)});
+window.addEventListener('beforeunload',()=>{if(!draftId||!dirty)return;savePageAnswers();fetch(`/api/staff/drafts/${draftId}`,{method:'PUT',keepalive:true,credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:answers,current_page:currentPage})}).catch(()=>{})});
 
-function renderPage() {
-  const form = document.getElementById('checklistForm');
-  const page = formConfig.pages[currentPage];
-  const total = formConfig.pages.length;
-  form.innerHTML = '';
-  renderProgress();
-
-  const header = document.createElement('div');
-  header.className = 'page-header';
-  header.innerHTML = `<div class="eyebrow">第 ${currentPage + 1} 頁／共 ${total} 頁</div><h1>${escapeHtml(page.title)}</h1>${page.description ? `<p>${escapeHtml(page.description)}</p>` : ''}`;
-  form.appendChild(header);
-
-  for (const group of groupedQuestions(page.id)) {
-    const panel = document.createElement('section');
-    panel.className = 'panel';
-    const title = document.createElement('div');
-    title.className = 'section-title';
-    title.textContent = group.title;
-    panel.appendChild(title);
-    for (const q of group.questions) panel.appendChild(renderField(q));
-    form.appendChild(panel);
-  }
-
-  const nav = document.createElement('div');
-  nav.className = 'form-nav';
-  nav.innerHTML = `<button type="button" class="secondary" id="prevBtn" ${currentPage === 0 ? 'disabled' : ''}>← 上一頁</button>${currentPage < total - 1 ? '<button type="button" id="nextBtn">下一頁 →</button>' : '<button type="submit" id="submitBtn">確認並送出交接清冊 ✓</button>'}`;
-  form.appendChild(nav);
-
-  form.querySelectorAll('input, textarea, select').forEach(input => {
-    input.value = answers[input.name] ?? '';
-    input.addEventListener('input', () => { answers[input.name] = input.value; });
-    input.addEventListener('change', () => { answers[input.name] = input.value; });
-  });
-
-  document.getElementById('prevBtn').addEventListener('click', () => { savePageAnswers(); currentPage--; renderPage(); window.scrollTo({top:0,behavior:'smooth'}); });
-  const next = document.getElementById('nextBtn');
-  if (next) next.addEventListener('click', () => {
-    if (!validateCurrentPage()) return;
-    savePageAnswers(); currentPage++; renderPage(); window.scrollTo({top:0,behavior:'smooth'});
-  });
-  form.onsubmit = onSubmit;
-}
-
-function renderProgress() {
-  const el = document.getElementById('progressArea');
-  el.innerHTML = formConfig.pages.map((p, i) => `<div class="progress-step ${i === currentPage ? 'current' : i < currentPage ? 'done' : ''}"><span>${i < currentPage ? '✓' : i + 1}</span><small>${escapeHtml(p.title)}</small></div>`).join('<div class="progress-line"></div>');
-}
-
-function renderField(q) {
-  const wrap = document.createElement('div'); wrap.className = 'field';
-  const label = document.createElement('label'); label.setAttribute('for', q.id);
-  label.innerHTML = escapeHtml(q.label) + (q.required ? '<span class="req">*</span>' : ''); wrap.appendChild(label);
-  let input;
-  if (q.type === 'textarea') input = document.createElement('textarea');
-  else { input = document.createElement('input'); input.type = ['number','date'].includes(q.type) ? q.type : 'text'; }
-  input.id = q.id; input.name = q.id; input.required = !!q.required;
-  wrap.appendChild(input); return wrap;
-}
-
-function savePageAnswers() {
-  const form = document.getElementById('checklistForm');
-  for (const [k,v] of new FormData(form).entries()) answers[k] = v;
-}
-
-function validateCurrentPage() {
-  savePageAnswers();
-  const missing = getPageQuestions(formConfig.pages[currentPage].id).filter(q => q.required && !String(answers[q.id] ?? '').trim());
-  if (missing.length) {
-    showMessage(`請先完成必填欄位：${missing.map(q => q.label).join('、')}`, 'error');
-    const first = document.getElementById(missing[0].id); if (first) first.focus();
-    return false;
-  }
-  return true;
-}
-
-async function onSubmit(e) {
-  e.preventDefault();
-  if (!validateCurrentPage()) return;
-  const btn = document.getElementById('submitBtn'); btn.disabled = true; btn.textContent = '送出中...';
-  try {
-    const res = await fetch('/api/submissions', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(answers) });
-    const result = await res.json();
-    if (!res.ok) throw new Error((result.error || '送出失敗') + (result.missing ? `（${result.missing.join('、')}）` : ''));
-    showMessage(`交接清冊已成功送出！單號：${result.id}`, 'success');
-    answers = {}; currentPage = 0; renderPage(); window.scrollTo({top:0,behavior:'smooth'});
-  } catch (err) { showMessage(err.message || '網路發生問題，請稍後再試。', 'error'); btn.disabled = false; btn.textContent = '確認並送出交接清冊 ✓'; }
-}
-
-function showMessage(text, type) { document.getElementById('msgArea').innerHTML = `<div class="msg ${type}">${escapeHtml(text)}</div>`; }
-function escapeHtml(str) { return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-loadForm().catch(err => showMessage(err.message, 'error'));
+boot().catch(e=>showMessage(e.message,'error'));
