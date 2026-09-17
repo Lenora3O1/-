@@ -44,7 +44,12 @@ function readFormConfig(){
     const initial=fs.existsSync(seedPath)?JSON.parse(fs.readFileSync(seedPath,'utf-8')):legacyToConfig();
     fs.writeFileSync(FORM_CONFIG_PATH,JSON.stringify(initial,null,2),'utf-8');
   }
-  return JSON.parse(fs.readFileSync(FORM_CONFIG_PATH,'utf-8'));
+  const config=JSON.parse(fs.readFileSync(FORM_CONFIG_PATH,'utf-8'));
+  config.pages=Array.isArray(config.pages)?config.pages:[];
+  config.questions=Array.isArray(config.questions)?config.questions:[];
+  const defaults={companyTitle:'公司管理後台',companySubtitle:'物業管理公司',companyIntro:'這裡只管理您所屬公司的資料。您可以自行開通一般人員、設定社區權限，以及查看本公司的正式交接紀錄。',companyLoginTitle:'公司管理員登入',companyLoginHint:'這裡是公司專屬管理後台。登入後可開通人員、管理社區與查看本公司交接紀錄。',staffLoginTitle:'物業人員登入',staffLoginHint:'請使用您的「員編＋密碼」登入。填寫到一半可以離開，系統會自動保存，下次登入可繼續。'};
+  config.uiTexts={...defaults,...(config.uiTexts||{})};
+  return config;
 }
 function writeFormConfig(config){fs.writeFileSync(FORM_CONFIG_PATH,JSON.stringify(config,null,2),'utf-8');}
 function readQuestions(){return readFormConfig().questions;}
