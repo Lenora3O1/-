@@ -90,6 +90,18 @@ db.exec(`
   );
 `);
 
+// V4.1.6 company white-label / branding settings
+addColumnIfMissing('tenants', 'brand_title', "TEXT DEFAULT ''");
+addColumnIfMissing('tenants', 'brand_subtitle', "TEXT DEFAULT ''");
+addColumnIfMissing('tenants', 'brand_login_title', "TEXT DEFAULT ''");
+addColumnIfMissing('tenants', 'brand_login_hint', "TEXT DEFAULT ''");
+addColumnIfMissing('tenants', 'brand_intro', "TEXT DEFAULT ''");
+addColumnIfMissing('tenants', 'brand_logo_text', "TEXT DEFAULT ''");
+addColumnIfMissing('tenants', 'brand_accent', "TEXT DEFAULT '#2F6F5E'");
+addColumnIfMissing('tenants', 'brand_accent_dark', "TEXT DEFAULT '#204F42'");
+addColumnIfMissing('tenants', 'brand_bg', "TEXT DEFAULT '#F7F7F4'");
+addColumnIfMissing('tenants', 'brand_panel', "TEXT DEFAULT '#FFFFFF'");
+
 function makePassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
@@ -130,6 +142,9 @@ function ensureTenant() {
 }
 
 const defaultTenant = ensureTenant();
+
+const brandDefaults = {title: defaultTenant.name || '物業管理公司', subtitle: '物業管理公司', loginTitle: '公司管理員登入', loginHint: '這裡是公司專屬管理後台。登入後可管理人員、社區與公司資料。', intro: '這裡只管理您所屬公司的資料。', logoText: ''};
+db.prepare(`UPDATE tenants SET brand_title=COALESCE(NULLIF(brand_title,''),?), brand_subtitle=COALESCE(NULLIF(brand_subtitle,''),?), brand_login_title=COALESCE(NULLIF(brand_login_title,''),?), brand_login_hint=COALESCE(NULLIF(brand_login_hint,''),?), brand_intro=COALESCE(NULLIF(brand_intro,''),?), brand_logo_text=COALESCE(brand_logo_text,'')`).run(brandDefaults.title,brandDefaults.subtitle,brandDefaults.loginTitle,brandDefaults.loginHint,brandDefaults.intro,brandDefaults.logoText);
 
 // Migrate all V3 staff/drafts/submissions/templates into the first tenant.
 db.prepare("UPDATE staff_users SET tenant_id=? WHERE tenant_id IS NULL").run(defaultTenant.id);
