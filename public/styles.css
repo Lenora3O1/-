@@ -202,3 +202,30 @@ body:not(.is-authenticated) .app-sidebar{display:none}
   .topbar{padding:16px 18px 16px 68px}
   .floating-notice{top:82px;right:12px;width:calc(100vw - 24px)}
 }
+
+/* V4.2.2：桌機側欄改為「平時收合、滑鼠移入左側自動展開、移出自動收回」 */
+@media(min-width:901px){
+  .app-sidebar{width:var(--sidebar-collapsed);}
+  body.sidebar-collapsed .app-sidebar{width:var(--sidebar-collapsed);}
+  body.sidebar-collapsed .shell{padding-left:calc(var(--sidebar-collapsed) + 34px)}
+  body.sidebar-hover .app-sidebar{width:var(--sidebar-width);}
+  body.sidebar-hover .app-sidebar .sidebar-head{padding-left:18px;padding-right:18px;}
+  body.sidebar-hover .sidebar-title,body.sidebar-hover .sidebar-caption{font-size:revert;}
+  body.sidebar-hover .app-sidebar .nav-tabs button{font-size:revert;justify-content:flex-start;padding:12px 13px;border-left:3px solid transparent;}
+  body.sidebar-hover .app-sidebar .nav-tabs button::first-letter{font-size:revert;}
+  body.sidebar-hover .shell{padding-left:calc(var(--sidebar-width) + 34px)}
+}
+
+/* 收合時只保留圖示；不顯示瀏覽器捲軸 */
+body.sidebar-collapsed .app-sidebar{overflow-y:auto;scrollbar-width:none;}
+body.sidebar-collapsed .app-sidebar::-webkit-scrollbar{width:0;height:0;}
+body.sidebar-collapsed .sidebar-title,body.sidebar-collapsed .sidebar-caption,body.sidebar-collapsed .app-sidebar .nav-tabs button{font-size:0;}
+body.sidebar-collapsed .app-sidebar .nav-tabs button{justify-content:center;padding:11px 8px;border-left:0;border-radius:10px;}
+body.sidebar-collapsed .app-sidebar .nav-tabs button::first-letter{font-size:1.05rem;}
+body.sidebar-hover .app-sidebar{box-shadow:10px 0 32px rgba(20,40,35,.14);}
+
+/* 滑鼠移到左側時，讓內容平順讓出空間；不影響手機抽屜 */
+@media(min-width:901px){
+  .shell{transition:padding-left .2s ease;}
+  .app-sidebar{transition:width .2s ease,box-shadow .2s ease;}
+}
