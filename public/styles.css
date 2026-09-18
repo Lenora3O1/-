@@ -351,3 +351,20 @@ h1, h2, h3, .topbar .brand {
   font-family: "Iansui", sans-serif !important;
 }
 
+
+
+/* V4.3.0：統一懸浮操作視窗 */
+.modal-backdrop{position:fixed;inset:0;z-index:3000;background:rgba(20,35,31,.48);display:flex;align-items:center;justify-content:center;padding:22px;backdrop-filter:blur(2px);animation:modalFadeIn .16s ease-out}
+.modal{position:relative;width:min(720px,calc(100vw - 44px));max-height:min(82vh,760px);overflow:auto;background:var(--panel,#fff);color:var(--ink,#17312a);border:1px solid var(--line,#d9e3df);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.22);padding:24px}
+.modal.modal-wide{width:min(900px,calc(100vw - 44px))}
+.modal h2{margin:0 42px 8px 0;color:var(--accent-dark,#204f42)}
+.modal h3{color:var(--accent-dark,#204f42)}
+.modal hr{border:0;border-top:1px solid var(--line,#d9e3df);margin:20px 0}
+.modal-close{position:absolute;right:14px;top:12px;width:38px;height:38px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--ink-soft,#64736e);font-size:1.7rem;line-height:1;cursor:pointer}
+.modal-close:hover{background:var(--accent-soft,#e7f1ed);color:var(--accent-dark,#204f42)}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line,#d9e3df)}
+.modal-actions button{min-width:92px}
+.modal-note{padding:12px 14px;border-radius:10px;background:var(--accent-soft,#e7f1ed);margin:10px 0 16px;color:var(--ink-soft,#64736e)}
+body.modal-open{overflow:hidden}
+@keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
+@media(max-width:700px){.modal-backdrop{padding:10px}.modal,.modal.modal-wide{width:calc(100vw - 20px);max-height:88vh;padding:20px 16px;border-radius:14px}.modal .editor-grid{grid-template-columns:1fr}.modal .editor-grid .wide{grid-column:auto}.modal-actions{flex-wrap:wrap}.modal-actions button{flex:1}}
