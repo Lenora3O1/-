@@ -193,6 +193,19 @@ db.exec(`CREATE TABLE IF NOT EXISTS menu_configs (
   UNIQUE(scope, tenant_id)
 )`);
 
+// V4.5：每位現場人員自己的儀表板釘選項目。
+db.exec(`CREATE TABLE IF NOT EXISTS dashboard_pins (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  staff_id INTEGER NOT NULL,
+  tenant_id INTEGER NOT NULL,
+  menu_id TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  UNIQUE(staff_id, menu_id),
+  FOREIGN KEY (staff_id) REFERENCES staff_users(id) ON DELETE CASCADE
+)`);
+
 db.prepare("UPDATE submissions SET tenant_id=(SELECT tenant_id FROM staff_users WHERE staff_users.employee_id=submissions.employee_id) WHERE tenant_id IS NULL").run();
 db.prepare("UPDATE submissions SET tenant_id=? WHERE tenant_id IS NULL").run(defaultTenant.id);
 db.prepare("UPDATE drafts SET tenant_id=(SELECT tenant_id FROM staff_users WHERE staff_users.employee_id=drafts.employee_id) WHERE tenant_id IS NULL").run();

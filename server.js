@@ -125,6 +125,49 @@ app.put('/api/admin/menu-config',requireSuperAdmin,(req,res)=>{
 });
 
 
+// ===== 個人工作台釘選 =====
+function getStaffMenuItem(req, menuId){
+  const id=String(menuId||'').trim();
+  if(!id) return null;
+  return resolveMenu('staff',tenantId(req)).find(x=>String(x.id)===id) || null;
+}
+function getStaffMenuChildren(menuId){
+  const items=readMenuConfig().staff||[];
+  return items.filter(x=>x.enabled!==false && x.parentId===menuId);
+}
+app.get('/api/staff/dashboard-pins',requireStaffFiller,(req,res)=>{
+  const u=getUser(req);
+  const rows=db.prepare('SELECT menu_id,sort_order,created_at,updated_at FROM dashboard_pins WHERE staff_id=? AND tenant_id=? ORDER BY sort_order ASC,id ASC').all(u.id,tenantId(req));
+  const menu=resolveMenu('staff',tenantId(req));
+  const valid=new Map(menu.map(x=>[String(x.id),x]));
+  const pins=rows.filter(r=>valid.has(String(r.menu_id))).map(r=>({menu_id:r.menu_id,sort_order:r.sort_order,created_at:r.created_at,updated_at:r.updated_at,item:valid.get(String(r.menu_id))}));
+  res.json({pins});
+});
+app.post('/api/staff/dashboard-pins',requireStaffFiller,(req,res)=>{
+  const u=getUser(req);
+  const menuId=String(req.body?.menu_id||'').trim();
+  const item=getStaffMenuItem(req,menuId);
+  if(!item) return res.status(404).json({error:'找不到這個工作項目，或目前已停用'});
+  if(getStaffMenuChildren(menuId).length) return res.status(400).json({error:'請釘選實際工作項目，不需要釘選分類目錄'});
+  const exists=db.prepare('SELECT id FROM dashboard_pins WHERE staff_id=? AND menu_id=?').get(u.id,menuId);
+  if(exists) return res.json({success:true,pinned:true,menu_id:menuId});
+  const max=db.prepare('SELECT COALESCE(MAX(sort_order),-1) AS m FROM dashboard_pins WHERE staff_id=? AND tenant_id=?').get(u.id,tenantId(req)).m;
+  const t=now(); db.prepare('INSERT INTO dashboard_pins (staff_id,tenant_id,menu_id,sort_order,created_at,updated_at) VALUES (?,?,?,?,?,?)').run(u.id,tenantId(req),menuId,Number(max)+1,t,t);
+  res.json({success:true,pinned:true,menu_id:menuId});
+});
+app.delete('/api/staff/dashboard-pins/:menuId',requireStaffFiller,(req,res)=>{
+  const u=getUser(req); db.prepare('DELETE FROM dashboard_pins WHERE staff_id=? AND tenant_id=? AND menu_id=?').run(u.id,tenantId(req),String(req.params.menuId));
+  res.json({success:true,pinned:false,menu_id:String(req.params.menuId)});
+});
+app.put('/api/staff/dashboard-pins/order',requireStaffFiller,(req,res)=>{
+  const u=getUser(req); const ids=Array.isArray(req.body?.menu_ids)?req.body.menu_ids.map(x=>String(x)).filter(Boolean):[];
+  const valid=new Set(resolveMenu('staff',tenantId(req)).map(x=>String(x.id)));
+  const clean=[...new Set(ids)].filter(id=>valid.has(id));
+  const tx=db.transaction(()=>{const stmt=db.prepare('UPDATE dashboard_pins SET sort_order=?,updated_at=? WHERE staff_id=? AND tenant_id=? AND menu_id=?');const t=now();clean.forEach((id,i)=>stmt.run(i,t,u.id,tenantId(req),id));});
+  tx(); res.json({success:true});
+});
+
+
 // ===== 員編登入 / 登出 =====
 app.post('/api/staff/login',(req,res)=>{
   const {employeeId,password}=req.body||{};
