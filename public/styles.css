@@ -229,3 +229,21 @@ body.sidebar-hover .app-sidebar{box-shadow:10px 0 32px rgba(20,40,35,.14);}
   .shell{transition:padding-left .2s ease;}
   .app-sidebar{transition:width .2s ease,box-shadow .2s ease;}
 }
+
+
+/* V4.2.3：登入前不顯示側邊欄；收合狀態穩定顯示 Emoji 圖示 */
+body:not(.is-authenticated) .app-sidebar,
+body:not(.is-authenticated) .sidebar-toggle{display:none;}
+.app-sidebar .nav-tabs button{display:flex;align-items:center;gap:10px;}
+.app-sidebar .nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;font-size:1.05rem;line-height:1;}
+.app-sidebar .nav-label{display:inline-block;overflow:hidden;text-overflow:ellipsis;}
+body.sidebar-collapsed .app-sidebar .nav-tabs button{gap:0;}
+body.sidebar-collapsed .app-sidebar .nav-label{display:none;}
+body.sidebar-collapsed .app-sidebar .nav-icon{display:inline-flex;font-size:1.1rem;}
+body.sidebar-hover .app-sidebar .nav-label{display:inline-block;}
+body.sidebar-hover .app-sidebar .nav-icon{font-size:1.05rem;}
+@media(max-width:900px){
+  body:not(.is-authenticated) .sidebar-toggle{display:none;}
+  body.sidebar-open .sidebar-toggle{display:block;}
+  .app-sidebar .nav-label{display:inline-block;}
+}

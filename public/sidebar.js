@@ -12,6 +12,20 @@
   }
 
   if(sidebar){
+    // Turn each navigation button into a stable icon + label pair.
+    // Using real spans avoids relying on ::first-letter, which is unreliable for emoji.
+    sidebar.querySelectorAll('.nav-tabs button').forEach(btn=>{
+      if(btn.querySelector('.nav-icon')) return;
+      const raw=btn.textContent.trim();
+      const match=raw.match(/^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*(.*)$/u);
+      if(match){
+        btn.textContent='';
+        const icon=document.createElement('span'); icon.className='nav-icon'; icon.textContent=match[1];
+        const label=document.createElement('span'); label.className='nav-label'; label.textContent=match[2];
+        btn.append(icon,label);
+      }
+    });
+
     // Desktop: sidebar is normally compact and expands while the mouse is over it.
     // Mobile: keep the click-to-open drawer behavior.
     if(mobile()){
