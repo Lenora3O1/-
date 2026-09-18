@@ -16,6 +16,7 @@ const TEMPLATES_DIR = path.join(DATA_DIR, 'uploads', 'templates');
 const GENERATED_DIR = path.join(DATA_DIR, 'generated');
 const QUESTIONS_PATH = path.join(__dirname, 'config', 'questions.json');
 const FORM_CONFIG_PATH = path.join(DATA_DIR, 'form-config.json');
+const MENU_CONFIG_PATH = path.join(DATA_DIR, 'menu-config.json');
 for (const dir of [TEMPLATES_DIR, GENERATED_DIR]) fs.mkdirSync(dir, { recursive: true });
 
 app.use(express.json({ limit: '2mb' }));
@@ -55,6 +56,39 @@ function readFormConfig(){
   return config;
 }
 function writeFormConfig(config){fs.writeFileSync(FORM_CONFIG_PATH,JSON.stringify(config,null,2),'utf-8');}
+function defaultMenuConfig(){
+  const seed=path.join(__dirname,'config','menu-config.json');
+  if(fs.existsSync(seed)) return JSON.parse(fs.readFileSync(seed,'utf-8'));
+  return {staff:[],company:[]};
+}
+function readMenuConfig(){
+  if(!fs.existsSync(MENU_CONFIG_PATH)) fs.writeFileSync(MENU_CONFIG_PATH,JSON.stringify(defaultMenuConfig(),null,2),'utf-8');
+  const c=JSON.parse(fs.readFileSync(MENU_CONFIG_PATH,'utf-8'));
+  c.staff=Array.isArray(c.staff)?c.staff:[]; c.company=Array.isArray(c.company)?c.company:[];
+  return c;
+}
+function writeMenuConfig(c){fs.writeFileSync(MENU_CONFIG_PATH,JSON.stringify(c,null,2),'utf-8');}
+function cleanMenuItems(items){
+  if(!Array.isArray(items)) return null;
+  const ids=new Set();
+  const clean=items.map((x,i)=>({
+    id:String(x?.id||`menu_${Date.now()}_${i}`).trim(), parentId:x?.parentId?String(x.parentId):null,
+    icon:String(x?.icon||'•').trim().slice(0,8), label:String(x?.label||'未命名功能').trim().slice(0,80),
+    action:String(x?.action||'placeholder').trim().slice(0,80), enabled:x?.enabled!==false
+  })).filter(x=>x.label);
+  for(const x of clean){if(ids.has(x.id)) throw new Error('目錄代碼不能重複');ids.add(x.id);}
+  const idSet=new Set(clean.map(x=>x.id));
+  for(const x of clean){if(x.parentId===x.id || (x.parentId && !idSet.has(x.parentId))) x.parentId=null;}
+  return clean;
+}
+function resolveMenu(scope,tenantIdValue){
+  const c=readMenuConfig();
+  let items=c[scope]||[];
+  // Reserved hook for future company-specific overrides. If a tenant override exists in the JSON, use it.
+  if(c.tenants && tenantIdValue && Array.isArray(c.tenants[String(tenantIdValue)]?.[scope])) items=c.tenants[String(tenantIdValue)][scope];
+  return items.filter(x=>x.enabled!==false);
+}
+
 function readQuestions(){return readFormConfig().questions;}
 function cleanData(data){ return (data && typeof data === 'object' && !Array.isArray(data)) ? data : {}; }
 function now(){return new Date().toISOString();}
@@ -71,6 +105,25 @@ function getTenant(req){return db.prepare('SELECT * FROM tenants WHERE id=?').ge
 
 // ===== 公開表單設定（所有公司共用中央表單版本；後續可再擴充公司覆寫） =====
 app.get('/api/form-config',(req,res)=>res.json(readFormConfig()));
+// ===== 動態工作目錄 =====
+app.get('/api/staff/menu-config',requireStaff,(req,res)=>res.json({scope:'staff',items:resolveMenu('staff',tenantId(req))}));
+app.get('/api/company/menu-config',requireCompanyAdmin,(req,res)=>res.json({scope:'company',items:resolveMenu('company',tenantId(req))}));
+app.get('/api/admin/menu-config',requireSuperAdmin,(req,res)=>res.json(readMenuConfig()));
+app.put('/api/admin/menu-config',requireSuperAdmin,(req,res)=>{
+  try{
+    const current=readMenuConfig();
+    const scope=req.body?.scope;
+    if(!['staff','company'].includes(scope)) return res.status(400).json({error:'目錄類型不正確'});
+    const items=cleanMenuItems(req.body?.items); if(!items) return res.status(400).json({error:'目錄格式錯誤'});
+    current[scope]=items;
+    if(req.body?.tenant_id){
+      const tid=Number(req.body.tenant_id); if(!tid) return res.status(400).json({error:'公司代碼不正確'});
+      current.tenants=current.tenants||{}; current.tenants[String(tid)]=current.tenants[String(tid)]||{}; current.tenants[String(tid)][scope]=items;
+    }
+    writeMenuConfig(current); res.json({success:true,config:current});
+  }catch(e){res.status(400).json({error:e.message||'目錄設定儲存失敗'});}
+});
+
 
 // ===== 員編登入 / 登出 =====
 app.post('/api/staff/login',(req,res)=>{

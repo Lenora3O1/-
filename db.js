@@ -165,6 +165,34 @@ db.prepare(`UPDATE tenants SET
 
 // Migrate all V3 staff/drafts/submissions/templates into the first tenant.
 db.prepare("UPDATE staff_users SET tenant_id=? WHERE tenant_id IS NULL").run(defaultTenant.id);
+
+// V4.4：共用修改紀錄基礎，供後續各社區模組記錄「誰、何時、修改什麼」。
+db.exec(`CREATE TABLE IF NOT EXISTS audit_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tenant_id INTEGER,
+  community_id INTEGER,
+  employee_id TEXT DEFAULT '',
+  employee_name TEXT DEFAULT '',
+  action TEXT NOT NULL,
+  module TEXT NOT NULL,
+  record_type TEXT DEFAULT '',
+  record_id TEXT DEFAULT '',
+  detail TEXT DEFAULT '',
+  created_at TEXT NOT NULL
+)`);
+
+// V4.4：平台目錄設定。scope 可為 staff / company，tenant_id 為 null 表示平台預設；
+// 未來可為單一公司建立 tenant-specific 覆寫，不影響其他公司。
+db.exec(`CREATE TABLE IF NOT EXISTS menu_configs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  scope TEXT NOT NULL,
+  tenant_id INTEGER,
+  config_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  updated_by TEXT DEFAULT '',
+  UNIQUE(scope, tenant_id)
+)`);
+
 db.prepare("UPDATE submissions SET tenant_id=(SELECT tenant_id FROM staff_users WHERE staff_users.employee_id=submissions.employee_id) WHERE tenant_id IS NULL").run();
 db.prepare("UPDATE submissions SET tenant_id=? WHERE tenant_id IS NULL").run(defaultTenant.id);
 db.prepare("UPDATE drafts SET tenant_id=(SELECT tenant_id FROM staff_users WHERE staff_users.employee_id=drafts.employee_id) WHERE tenant_id IS NULL").run();
