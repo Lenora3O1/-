@@ -247,3 +247,15 @@ body.sidebar-hover .app-sidebar .nav-icon{font-size:1.05rem;}
   body.sidebar-open .sidebar-toggle{display:block;}
   .app-sidebar .nav-label{display:inline-block;}
 }
+
+/* V4.2.4：桌機側邊欄真正收合／滑鼠移入展開 */
+@media (min-width:901px){
+body.sidebar-collapsed .app-sidebar{width:76px;min-width:76px;overflow:visible;}
+body.sidebar-collapsed .app-sidebar .nav-tabs{width:76px;}
+body.sidebar-collapsed .app-sidebar .nav-tabs button{width:56px;min-width:56px;margin:0 auto;justify-content:center;padding:12px 0;}
+body.sidebar-collapsed .app-sidebar .nav-label{display:none;}
+body.sidebar-hover .app-sidebar{width:250px;min-width:250px;}
+body.sidebar-hover .app-sidebar .nav-tabs{width:250px;}
+body.sidebar-hover .app-sidebar .nav-tabs button{width:calc(100% - 20px);margin:0 10px;justify-content:flex-start;padding:12px 14px;}
+body.sidebar-hover .app-sidebar .nav-label{display:inline-block;}
+}
