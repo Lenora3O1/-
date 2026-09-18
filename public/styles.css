@@ -156,3 +156,49 @@ a.link { color: var(--accent-dark); text-decoration: underline; cursor: pointer;
 
 .admin-manage-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border,#d9e3df)}
 .admin-manage-row:last-child{border-bottom:0}
+
+/* V4.2.0：左側隱藏滾動選單＋可關閉懸浮通知 */
+:root{--sidebar-width:248px;--sidebar-collapsed:76px}
+body{min-height:100vh;overflow-x:hidden}
+.sidebar-toggle{position:fixed;left:14px;top:13px;z-index:1003;width:42px;height:42px;padding:0;border-radius:10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:1.2rem;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.sidebar-toggle:hover{background:rgba(255,255,255,.18)}
+.topbar{padding-left:76px;min-height:76px;position:relative;z-index:1000}
+.app-sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-width);z-index:1002;background:#fff;border-right:1px solid var(--line);box-shadow:8px 0 28px rgba(20,40,35,.08);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;transition:width .2s ease,transform .2s ease}
+.app-sidebar::-webkit-scrollbar{width:0;height:0}
+.sidebar-head{padding:86px 18px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--accent-soft),#fff)}
+.sidebar-title{font-weight:800;color:var(--accent-dark);font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-caption{font-size:.74rem;color:var(--ink-soft);margin-top:3px;white-space:nowrap}
+.app-sidebar .nav-tabs{display:flex;flex-direction:column;gap:5px;margin:0;padding:12px 10px;border:0}
+.app-sidebar .nav-tabs button{width:100%;justify-content:flex-start;text-align:left;background:transparent;color:var(--ink-soft);border:0;border-left:3px solid transparent;border-radius:9px;padding:12px 13px;font-weight:700;white-space:nowrap;min-height:44px}
+.app-sidebar .nav-tabs button.active{color:var(--accent-dark);background:var(--accent-soft);border-left-color:var(--accent)}
+.app-sidebar .nav-tabs button:hover:not(:disabled){background:#f2f6f4;color:var(--accent-dark)}
+.app-sidebar .nav-tabs button.nav-disabled{opacity:.55;cursor:not-allowed}
+.app-sidebar .nav-disabled span{margin-left:auto;font-size:.68rem;font-weight:500;color:var(--ink-soft)}
+.shell{max-width:none;margin:0;padding:32px 34px 90px  calc(var(--sidebar-width) + 34px);transition:padding-left .2s ease}
+body.sidebar-collapsed .app-sidebar{width:var(--sidebar-collapsed)}
+body.sidebar-collapsed .app-sidebar .sidebar-head{padding-left:16px;padding-right:10px}
+body.sidebar-collapsed .sidebar-title,body.sidebar-collapsed .sidebar-caption,body.sidebar-collapsed .app-sidebar .nav-tabs button{font-size:0}
+body.sidebar-collapsed .app-sidebar .nav-tabs button{justify-content:center;padding:11px 8px;border-left:0;border-radius:10px}
+body.sidebar-collapsed .app-sidebar .nav-tabs button::first-letter{font-size:1.05rem}
+body.sidebar-collapsed .shell{padding-left:calc(var(--sidebar-collapsed) + 34px)}
+.floating-notice{position:fixed;top:94px;right:24px;width:min(390px,calc(100vw - 48px));z-index:999;background:rgba(238,248,253,.97);border:2px solid #18A9D0;border-radius:12px;padding:17px 46px 16px 18px;box-shadow:0 10px 30px rgba(18,87,110,.16);color:var(--ink);animation:noticeIn .25s ease-out}
+.floating-notice.is-closed{display:none}
+.floating-notice .notice-kicker{font-size:.78rem;font-weight:800;color:#08799a;margin-bottom:5px}
+.floating-notice strong{display:block;color:#164f60;margin-bottom:4px}
+.floating-notice p{margin:0;color:#45636b;font-size:.83rem;line-height:1.55}
+.notice-close{position:absolute;right:9px;top:8px;width:30px;height:30px;padding:0;border-radius:50%;background:transparent;color:#17657b;border:0;font-size:1.5rem;line-height:1}
+.notice-close:hover{background:rgba(24,169,208,.12);color:#0b5367}
+@keyframes noticeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.sidebar-backdrop{display:none}
+.is-authenticated .app-sidebar{display:block}
+body:not(.is-authenticated) .app-sidebar{display:none}
+@media(max-width:900px){
+  .sidebar-toggle{top:12px;left:12px}
+  .app-sidebar{width:280px;transform:translateX(-102%)}
+  body.sidebar-open .app-sidebar{transform:translateX(0)}
+  .sidebar-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.34);z-index:1001}
+  body.sidebar-open .sidebar-backdrop{display:block}
+  .shell,body.sidebar-collapsed .shell{padding:24px 16px 80px}
+  .topbar{padding:16px 18px 16px 68px}
+  .floating-notice{top:82px;right:12px;width:calc(100vw - 24px)}
+}
