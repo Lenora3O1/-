@@ -1,13 +1,13 @@
-let state={submissions:[],templates:[],staff:[],tenants:[],config:null,brandingTenantId:null,branding:null};
+let state={submissions:[],templates:[],staff:[],tenants:[],config:null,brandingTenantId:null,branding:null,menus:{staff:[],company:[]},menuScope:'staff',menuTenantId:null};
 const $=id=>document.getElementById(id);
 async function api(url,options={}){const r=await fetch(url,{credentials:'same-origin',...options});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.error||'操作失敗');return d;}
 async function checkSession(){try{const r=await api('/api/admin/session');if(r.isAdmin){showMain();await loadAll()}else{$('loginView').style.display='block'}}catch(err){$('loginView').style.display='block';$('loginMsg').innerHTML=`<div class="msg error">${escapeHtml(err.message||'無法讀取登入狀態，請重新整理。')}</div>`}}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value})});showMain();await loadAll()}catch(err){$('loginMsg').innerHTML=`<div class="msg error">${escapeHtml(err.message)}</div>`}});
 $('logoutBtn').addEventListener('click',async()=>{await api('/api/admin/logout',{method:'POST'});location.reload()});
 function showMain(){$('loginView').style.display='none';$('mainView').style.display='block';$('logoutWrap').style.display='block'}
-for(const b of document.querySelectorAll('.nav-tabs button'))b.addEventListener('click',()=>{document.querySelectorAll('.nav-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');for(const id of ['tenants','submissions','staff','templates','form','branding'])$(`tab-${id}`).style.display=b.dataset.tab===id?'block':'none';});
+for(const b of document.querySelectorAll('.nav-tabs button'))b.addEventListener('click',()=>{document.querySelectorAll('.nav-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');for(const id of ['tenants','submissions','staff','templates','form','branding','menus'])$(`tab-${id}`).style.display=b.dataset.tab===id?'block':'none';if(b.dataset.tab==='menus')renderMenuDesigner();});
 async function loadAll(){
-  const jobs=[['tenants',loadTenants,renderTenants],['submissions',loadSubmissions,renderSubmissions],['staff',loadStaff,renderStaff],['templates',loadTemplates,renderTemplates],['form',loadConfig,renderFormDesigner],['branding',loadBranding,renderBranding]];
+  const jobs=[['tenants',loadTenants,renderTenants],['submissions',loadSubmissions,renderSubmissions],['staff',loadStaff,renderStaff],['templates',loadTemplates,renderTemplates],['form',loadConfig,renderFormDesigner],['branding',loadBranding,renderBranding],['menus',loadMenus,renderMenuDesigner]];
   for(const [key] of jobs){const el=$(`tab-${key}`);if(el)el.innerHTML='<div class="panel"><div class="hint">⏳ 正在讀取資料…</div></div>';}
   for(const [key,loader,renderer] of jobs){
     try{await loader();renderer()}catch(err){
@@ -21,6 +21,24 @@ async function loadSubmissions(){const r=await api('/api/admin/submissions');sta
 async function loadTemplates(){state.templates=await api('/api/admin/templates')}
 async function loadStaff(){state.staff=await api('/api/admin/staff')}
 async function loadConfig(){state.config=await api('/api/admin/form-config');if(!state.config||!Array.isArray(state.config.pages)||!Array.isArray(state.config.questions)){throw new Error('中央表單設定格式不完整，請檢查 /data/form-config.json。')}}
+async function loadMenus(){state.menus=await api('/api/admin/menu-config');state.menuTenantId=null;}
+function menuScopeLabel(scope){return scope==='staff'?'👤 現場人員工作目錄':'🏢 公司後台工作目錄';}
+function renderMenuDesigner(){
+  const el=$('tab-menus'); if(!el)return;
+  const items=state.menus[state.menuScope]||[];
+  const tenantOptions=state.tenants.map(t=>`<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+  el.innerHTML=`<div class="panel designer-intro"><div class="section-title">📂 現場／公司後台工作目錄管理</div><p><strong>這裡是總後臺提供的目錄雛型。</strong> 你可以自行新增、刪除、改名稱、改圖示、調整上下層關係與順序；儲存後，登入人員會依設定看到對應目錄。</p><div class="menu-tree-note">💡 「現場人員」目錄會套用到經理／秘書等前台帳號；「公司後台」則套用到公司管理員。未來再加入職務權限後，同一家公司可以讓不同職務看到不同目錄。</div><div class="menu-scope-tabs"><button class="${state.menuScope==='staff'?'active':''}" onclick="switchMenuScope('staff')">👤 現場人員目錄</button><button class="${state.menuScope==='company'?'active':''}" onclick="switchMenuScope('company')">🏢 公司後台目錄</button></div></div>
+  <div class="panel"><div class="section-title">${menuScopeLabel(state.menuScope)}（${items.length} 項）</div><p class="hint">父項目可作為分類；有子項目的分類點擊後會展開／收合。子項目會顯示在分類下面。</p><div id="menuEditorList">${items.map((x,i)=>menuEditorRow(x,i,items)).join('')||'<div class="empty">目前沒有目錄項目。</div>'}</div><div class="menu-editor-actions"><button onclick="addMenuItem()">＋ 新增目錄</button></div><div class="save-bar"><button onclick="saveMenuConfig()">💾 儲存工作目錄設定</button><span id="menuSaveMsg"></span></div></div>`;
+}
+function menuEditorRow(x,i,items){const parents=items.filter(p=>p.id!==x.id&&!(items.some(c=>c.parentId===x.id)&&p.parentId));return `<div class="menu-editor-row"><div class="move-buttons"><button class="icon-btn" onclick="moveMenu(${i},-1)" ${i===0?'disabled':''}>↑</button><button class="icon-btn" onclick="moveMenu(${i},1)" ${i===items.length-1?'disabled':''}>↓</button></div><div><label>圖示</label><input id="menu-icon-${i}" value="${escapeAttr(x.icon||'•')}" maxlength="8"></div><div><label>顯示名稱</label><input id="menu-label-${i}" value="${escapeAttr(x.label||'未命名功能')}"></div><div><label>功能代號</label><input id="menu-action-${i}" value="${escapeAttr(x.action||'placeholder')}"></div><div><label>上層目錄</label><select id="menu-parent-${i}"><option value="">主目錄</option>${items.filter(p=>p.id!==x.id).map(p=>`<option value="${escapeAttr(p.id)}" ${x.parentId===p.id?'selected':''}>${escapeHtml(p.icon||'•')} ${escapeHtml(p.label)}</option>`).join('')}</select></div><div><label>顯示</label><select id="menu-enabled-${i}"><option value="1" ${x.enabled!==false?'selected':''}>顯示</option><option value="0" ${x.enabled===false?'selected':''}>隱藏</option></select></div><div><button class="danger" onclick="removeMenu(${i})">刪除</button></div></div>`}
+function collectMenuItems(){const items=state.menus[state.menuScope]||[];return items.map((x,i)=>({...x,icon:$(`menu-icon-${i}`)?.value||x.icon,label:$(`menu-label-${i}`)?.value||x.label,action:$(`menu-action-${i}`)?.value||'placeholder',parentId:$(`menu-parent-${i}`)?.value||null,enabled:$(`menu-enabled-${i}`)?.value==='1'}));}
+function switchMenuScope(scope){state.menuScope=scope;renderMenuDesigner()}
+function addMenuItem(){const items=state.menus[state.menuScope]||[];items.push({id:'menu_'+Date.now(),parentId:null,icon:'📁',label:'新目錄',action:'placeholder',enabled:true});renderMenuDesigner();setTimeout(()=>document.getElementById(`menu-label-${items.length-1}`)?.focus(),0)}
+function removeMenu(i){const items=state.menus[state.menuScope]||[];const id=items[i]?.id;if(!id)return;if(items.some(x=>x.parentId===id)){alert('此目錄還有子項目，請先將子項目移到其他分類或主目錄。');return}if(!confirm(`確定刪除「${items[i].label}」嗎？`))return;items.splice(i,1);renderMenuDesigner()}
+function moveMenu(i,d){const items=state.menus[state.menuScope]||[];const j=i+d;if(j<0||j>=items.length)return;[items[i],items[j]]=[items[j],items[i]];renderMenuDesigner()}
+async function saveMenuConfig(){const msg=$('menuSaveMsg');try{const items=collectMenuItems();const r=await api('/api/admin/menu-config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope:state.menuScope,items})});state.menus=r.config||state.menus;msg.innerHTML='<span class="msg success inline-msg">✓ 工作目錄已儲存。</span>';renderMenuDesigner();}catch(e){msg.innerHTML=`<span class="msg error inline-msg">${escapeHtml(e.message)}</span>`}}
+async function resetMenuScope(){if(!confirm('確定要將這一類型目錄還原成平台預設雛型嗎？'))return;try{const seed=await api('/api/admin/menu-config');state.menus[state.menuScope]=seed[state.menuScope]||[];renderMenuDesigner()}catch(e){alert(e.message)}}
+
 function renderTenants(){
  const el=$('tab-tenants');
  const rows=state.tenants.map(t=>{

@@ -368,3 +368,28 @@ h1, h2, h3, .topbar .brand {
 body.modal-open{overflow:hidden}
 @keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
 @media(max-width:700px){.modal-backdrop{padding:10px}.modal,.modal.modal-wide{width:calc(100vw - 20px);max-height:88vh;padding:20px 16px;border-radius:14px}.modal .editor-grid{grid-template-columns:1fr}.modal .editor-grid .wide{grid-column:auto}.modal-actions{flex-wrap:wrap}.modal-actions button{flex:1}}
+
+/* V4.4：網站固定使用芫荽字體（網站自行載入，不依賴使用者電腦安裝） */
+@font-face{font-family:'Iansui';src:url('/fonts/Iansui-Regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+html,body,button,input,textarea,select{font-family:'Iansui','Microsoft JhengHei','Noto Sans TC',sans-serif}
+h1,h2,h3{font-family:'Iansui','Microsoft JhengHei','Noto Sans TC',sans-serif}
+
+/* V4.4：動態工作目錄 */
+.app-sidebar .nav-tabs{overflow-y:auto;scrollbar-width:none}
+.app-sidebar .nav-tabs::-webkit-scrollbar{width:0;height:0}
+.app-sidebar .nav-tabs button{width:calc(100% - 20px);margin:2px 10px}
+.app-sidebar .menu-children{display:block;padding:0 0 4px}
+.app-sidebar .menu-children.is-collapsed{display:none}
+.app-sidebar .menu-child{font-size:.94em!important}
+.app-sidebar .menu-parent[aria-expanded="false"] .nav-label::after{content:' ▸';opacity:.55}
+.app-sidebar .menu-parent[aria-expanded="true"] .nav-label::after{content:' ▾';opacity:.55}
+.menu-editor-row{display:grid;grid-template-columns:40px 70px minmax(150px,1.4fr) minmax(120px,1fr) 130px 90px 86px;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fff;margin:7px 0}
+.menu-editor-row .grow{min-width:0}.menu-editor-row input,.menu-editor-row select{width:100%}.menu-editor-actions{display:flex;gap:6px;flex-wrap:wrap}.menu-tree-note{padding:12px 14px;background:var(--accent-soft);border-radius:10px;margin:12px 0}.menu-scope-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.menu-scope-tabs button.active{background:var(--accent-dark);color:#fff}
+@media(max-width:900px){.menu-editor-row{grid-template-columns:40px 1fr;}.menu-editor-row>*{grid-column:2}.menu-editor-row .move-buttons{grid-column:1;grid-row:1 / span 7}.menu-editor-row .grow{min-width:0}}
+
+/* V4.4：現場工作台首頁 */
+.dashboard-grid{display:grid;grid-template-columns:minmax(260px,.8fr) minmax(320px,1.2fr);gap:18px;margin-bottom:18px}
+.dashboard-clock{min-height:180px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(135deg,var(--accent-soft),#fff)}
+.dashboard-date{font-size:1.15rem;color:var(--ink-soft);margin-top:4px}.dashboard-time{font-size:2.6rem;font-weight:800;color:var(--accent-dark);letter-spacing:.03em;line-height:1.1;margin-top:4px}
+.dashboard-todo{min-height:180px}.todo-empty{border:1px dashed var(--line);border-radius:12px;padding:22px;color:var(--ink-soft);background:#fbfcfb}.todo-empty span{display:block;font-size:.9rem;margin-top:5px}
+@media(max-width:700px){.dashboard-grid{grid-template-columns:1fr}.dashboard-time{font-size:2.1rem}}

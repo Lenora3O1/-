@@ -4,101 +4,66 @@
   const backdrop=document.getElementById('sidebarBackdrop');
   const key='handover-sidebar-collapsed';
   const mobile=()=>window.innerWidth<=900;
-
-  function setCollapsed(v){
-    document.body.classList.toggle('sidebar-collapsed',!!v);
-    if(!mobile()) document.body.classList.remove('sidebar-hover');
-    try{localStorage.setItem(key,v?'1':'0')}catch(e){}
-  }
-
-  if(sidebar){
-    // Turn each navigation button into a stable icon + label pair.
-    // Using real spans avoids relying on ::first-letter, which is unreliable for emoji.
+  function setCollapsed(v){document.body.classList.toggle('sidebar-collapsed',!!v);if(!mobile())document.body.classList.remove('sidebar-hover');try{localStorage.setItem(key,v?'1':'0')}catch(e){}}
+  function wrapStaticButtons(){
+    if(!sidebar)return;
     sidebar.querySelectorAll('.nav-tabs button').forEach(btn=>{
-      if(btn.querySelector('.nav-icon')) return;
+      if(btn.querySelector('.nav-icon'))return;
       const raw=btn.textContent.trim();
-      const match=raw.match(/^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*(.*)$/u);
-      if(match){
-        btn.textContent='';
-        const icon=document.createElement('span'); icon.className='nav-icon'; icon.textContent=match[1];
-        const label=document.createElement('span'); label.className='nav-label'; label.textContent=match[2];
-        btn.append(icon,label);
-      }
+      const m=raw.match(/^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*(.*)$/u);
+      if(!m)return;
+      btn.textContent='';
+      const icon=document.createElement('span');icon.className='nav-icon';icon.textContent=m[1];
+      const label=document.createElement('span');label.className='nav-label';label.textContent=m[2];
+      btn.append(icon,label);
     });
-
-    // Desktop: sidebar is normally compact and expands while the mouse is over it.
-    // Mobile: keep the click-to-open drawer behavior.
-    if(mobile()){
-      document.body.classList.remove('sidebar-collapsed');
-    }else{
-      // Auto-collapse is the default. A previous expanded preference is intentionally ignored
-      // so all three workspaces start with the same compact navigation.
-      document.body.classList.add('sidebar-collapsed');
-      try{localStorage.setItem(key,'1')}catch(e){}
-      sidebar.addEventListener('mouseenter',()=>{
-        if(!mobile()) document.body.classList.add('sidebar-hover');
-      });
-      sidebar.addEventListener('mouseleave',()=>{
-        if(!mobile()) document.body.classList.remove('sidebar-hover');
-      });
-    }
-
-    toggle?.addEventListener('click',()=>{
-      if(mobile()){
-        document.body.classList.toggle('sidebar-open');
-      }else{
-        // Keep the manual button useful: click toggles a temporary expanded state.
-        const expanded=document.body.classList.contains('sidebar-hover');
-        document.body.classList.toggle('sidebar-hover',!expanded);
-      }
-    });
+  }
+  function setupShell(){
+    if(!sidebar)return;
+    wrapStaticButtons();
+    if(mobile()) document.body.classList.remove('sidebar-collapsed'); else {document.body.classList.add('sidebar-collapsed');try{localStorage.setItem(key,'1')}catch(e){}}
+    sidebar.addEventListener('mouseenter',()=>{if(!mobile())document.body.classList.add('sidebar-hover')});
+    sidebar.addEventListener('mouseleave',()=>{if(!mobile())document.body.classList.remove('sidebar-hover')});
+    toggle?.addEventListener('click',()=>{if(mobile())document.body.classList.toggle('sidebar-open');else document.body.classList.toggle('sidebar-hover')});
     backdrop?.addEventListener('click',()=>document.body.classList.remove('sidebar-open'));
-    sidebar.querySelectorAll('.nav-tabs button').forEach(btn=>btn.addEventListener('click',()=>{
-      if(mobile()) document.body.classList.remove('sidebar-open');
-    }));
   }
-
-  document.querySelectorAll('[data-close-notice]').forEach(btn=>btn.addEventListener('click',()=>{
-    const n=btn.closest('.floating-notice');
-    if(!n)return;
-    n.classList.add('is-closed');
-    try{localStorage.setItem('notice-closed-'+(n.id||location.pathname),'1')}catch(e){}
-  }));
-  document.querySelectorAll('.floating-notice').forEach(n=>{
-    try{if(localStorage.getItem('notice-closed-'+(n.id||location.pathname))==='1')n.classList.add('is-closed')}catch(e){}
-  });
-
+  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function renderItems(items){
+    const nav=sidebar?.querySelector('.nav-tabs'); if(!nav)return;
+    nav.innerHTML='';
+    const byParent={}; for(const x of items){const p=x.parentId||'__root';(byParent[p] ||= []).push(x)}
+    function add(parent,depth){
+      for(const item of (byParent[parent]||[])){
+        const btn=document.createElement('button'); btn.type='button'; btn.className=depth?'menu-child':''; btn.dataset.menuAction=item.action||'placeholder'; btn.dataset.menuId=item.id; btn.innerHTML=`<span class="nav-icon">${esc(item.icon||'•')}</span><span class="nav-label">${esc(item.label||'未命名功能')}</span>`;
+        const children=byParent[item.id]||[];
+        if(children.length){btn.classList.add('menu-parent');btn.setAttribute('aria-expanded','true');}
+        btn.addEventListener('click',()=>{
+          if(children.length){
+            const open=btn.getAttribute('aria-expanded')!=='false'; btn.setAttribute('aria-expanded',String(!open));
+            const box=btn.nextElementSibling; if(box)box.classList.toggle('is-collapsed',open); return;
+          }
+          nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
+          if(mobile())document.body.classList.remove('sidebar-open');
+          document.dispatchEvent(new CustomEvent('workspace-menu',{detail:{action:item.action,id:item.id,label:item.label}}));
+        });
+        nav.appendChild(btn);
+        if(children.length){const childBox=document.createElement('div');childBox.className='menu-children';nav.appendChild(childBox);for(const child of children){
+            const cbtn=document.createElement('button');cbtn.type='button';cbtn.className='menu-child';cbtn.dataset.menuAction=child.action||'placeholder';cbtn.dataset.menuId=child.id;cbtn.innerHTML=`<span class="nav-icon">${esc(child.icon||'↳')}</span><span class="nav-label">${esc(child.label||'未命名功能')}</span>`;
+            cbtn.addEventListener('click',()=>{nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));cbtn.classList.add('active');if(mobile())document.body.classList.remove('sidebar-open');document.dispatchEvent(new CustomEvent('workspace-menu',{detail:{action:child.action,id:child.id,label:child.label}}));});childBox.appendChild(cbtn);
+          }}
+      }
+    }
+    add('__root',0);
+  }
+  async function loadDynamicSidebar(scope){
+    if(!sidebar)return;
+    try{const r=await fetch(scope==='company'?'/api/company/menu-config':'/api/staff/menu-config',{credentials:'same-origin'});if(!r.ok)return;const d=await r.json();renderItems(Array.isArray(d.items)?d.items:[]);}catch(e){console.warn('Dynamic menu load skipped',e)}
+  }
+  window.refreshWorkspaceMenu=loadDynamicSidebar;
+  setupShell();
+  document.querySelectorAll('[data-close-notice]').forEach(btn=>btn.addEventListener('click',()=>{const n=btn.closest('.floating-notice');if(!n)return;n.classList.add('is-closed');try{localStorage.setItem('notice-closed-'+(n.id||location.pathname),'1')}catch(e){}}));
+  document.querySelectorAll('.floating-notice').forEach(n=>{try{if(localStorage.getItem('notice-closed-'+(n.id||location.pathname))==='1')n.classList.add('is-closed')}catch(e){}});
   const login=document.getElementById('loginView'),main=document.getElementById('mainView');
-  function sync(){
-    const logged=main?getComputedStyle(main).display!=='none':(login?getComputedStyle(login).display==='none':true);
-    document.body.classList.toggle('is-authenticated',logged);
-  }
-  if(login||main){
-    sync();
-    const mo=new MutationObserver(sync);
-    if(login)mo.observe(login,{attributes:true,attributeFilter:['style','class']});
-    if(main)mo.observe(main,{attributes:true,attributeFilter:['style','class']});
-  }
-})();
-
-(function(){
-  const home=document.querySelector('.staff-nav-home'),checklist=document.querySelector('.staff-nav-checklist');
-  home?.addEventListener('click',()=>{
-    document.getElementById('homeView')?.style.setProperty('display','block');
-    document.getElementById('editorView')?.style.setProperty('display','none');
-    document.getElementById('loginView')?.style.setProperty('display','none');
-    document.querySelectorAll('.staff-nav-home,.staff-nav-checklist').forEach(x=>x.classList.remove('active'));
-    home.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
-  });
-  checklist?.addEventListener('click',()=>{
-    const homeView=document.getElementById('homeView'),editor=document.getElementById('editorView');
-    if(editor&&editor.style.display!=='none'){
-      document.querySelectorAll('.staff-nav-home,.staff-nav-checklist').forEach(x=>x.classList.remove('active'));
-      checklist.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});return;
-    }
-    if(homeView&&homeView.style.display!=='none'){
-      document.querySelectorAll('.staff-nav-home,.staff-nav-checklist').forEach(x=>x.classList.remove('active'));
-      checklist.classList.add('active');window.scrollTo({top:0,behavior:'smooth'});
-    }
-  });
+  function sync(){const logged=main?getComputedStyle(main).display!=='none':(login?getComputedStyle(login).display==='none':true);document.body.classList.toggle('is-authenticated',logged);if(logged){const scope=location.pathname.includes('company.html')?'company':location.pathname.endsWith('/')||location.pathname.includes('index.html')?'staff':null;if(scope)setTimeout(()=>loadDynamicSidebar(scope),30)}}
+  if(login||main){sync();const mo=new MutationObserver(sync);if(login)mo.observe(login,{attributes:true,attributeFilter:['style','class']});if(main)mo.observe(main,{attributes:true,attributeFilter:['style','class']})}
 })();

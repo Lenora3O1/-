@@ -5,10 +5,19 @@ async function applyCompanyBranding(){try{const b=await api('/api/company/brandi
 
 async function applyUiText(){try{const c=await api('/api/form-config');const u=c.uiTexts||{};if(u.companyTitle)$('companyBrand').textContent=u.companyTitle;if(u.companyLoginTitle)$('companyLoginTitle').textContent='🔐 '+u.companyLoginTitle;if(u.companyLoginHint)$('companyLoginHint').textContent=u.companyLoginHint;if(u.companyIntroTitle)$('companyIntroTitle').textContent='🏢 '+(u.companyTitle||'公司管理後台');if(u.companyIntro)$('companyIntro').textContent=u.companyIntro;if(u.companySubtitle)$('tenantName').dataset.defaultSubtitle=u.companySubtitle;}catch(e){console.warn('UI text load failed',e)}}
 async function boot(){await applyCompanyBranding();await applyUiText();try{const s=await api('/api/company/session');showMain(s);await loadAll()}catch{$('loginView').style.display='block'}}
-function showMain(s){$('loginView').style.display='none';$('mainView').style.display='block';$('logoutWrap').style.display='block';$('tenantName').textContent=s.tenant.name;state.currentUserId=s.user?.id||state.currentUserId;state.currentAdminLevel=s.user?.admin_level||'admin'}
+function showMain(s){$('loginView').style.display='none';$('mainView').style.display='block';$('logoutWrap').style.display='block';$('tenantName').textContent=s.tenant.name;state.currentUserId=s.user?.id||state.currentUserId;state.currentAdminLevel=s.user?.admin_level||'admin';window.refreshWorkspaceMenu?.('company')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();try{const s=await api('/api/staff/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({employeeId:$('employeeId').value,password:$('password').value})});if(s.user.role!=='company_admin')throw new Error('這個帳號不是公司管理員，請改用一般填表入口。');showMain({tenant:{name:s.user.tenant_name},user:{id:s.user.id,admin_level:s.user.admin_level}});await loadAll()}catch(err){$('loginMsg').innerHTML=`<div class="msg error">${escapeHtml(err.message)}</div>`}});
 $('logoutBtn').addEventListener('click',async()=>{await api('/api/staff/logout',{method:'POST'});location.reload()});
 $('staffEntryLink')?.addEventListener('click',async e=>{e.preventDefault();await api('/api/staff/logout',{method:'POST'});location.href='/';});
+
+
+document.addEventListener('workspace-menu',e=>{
+  const a=e.detail?.action;
+  const tabs=['overview','staff','communities','submissions','templates'];
+  if(tabs.includes(a)){document.querySelectorAll('.nav-tabs button').forEach(x=>x.classList.remove('active'));for(const id of tabs){const el=$(`tab-${id}`);if(el)el.style.display=a===id?'block':'none';}return;}
+  if(a && a!=='group') openCompanyModal('🚧 功能模組',`<div class="modal-note">你點選的是「${escapeHtml(e.detail?.label||'此功能')}」。這個模組已經放進公司工作目錄，下一階段可以再接上實際資料與權限。</div><div class="modal-actions"><button onclick="closeCompanyModal(this)">知道了</button></div>`);
+});
+
 for(const b of document.querySelectorAll('.nav-tabs button'))b.addEventListener('click',()=>{document.querySelectorAll('.nav-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');for(const id of ['overview','staff','communities','submissions','templates'])$(`tab-${id}`).style.display=b.dataset.tab===id?'block':'none';});
 async function loadAll(){const [adminData,staff,communities,submissions,templateData]=await Promise.all([api('/api/company/admins'),api('/api/company/staff'),api('/api/company/communities'),api('/api/company/submissions').then(x=>x.submissions),api('/api/company/templates')]);state.admins=adminData.admins||[];state.currentUserId=adminData.current_user_id;state.currentAdminLevel=adminData.current_admin_level||'admin';state.staff=staff;state.communities=communities;state.submissions=submissions;state.templates=templateData.companyTemplates||[];state.globalTemplates=templateData.globalTemplates||[];renderAll()}
 function renderAll(){renderOverview();renderStaff();renderCommunities();renderSubmissions();renderTemplates()}
