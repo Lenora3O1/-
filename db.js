@@ -23,7 +23,7 @@ db.exec(`
   );
   CREATE TABLE IF NOT EXISTS staff_users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    employee_id TEXT NOT NULL UNIQUE,
+    employee_id TEXT NOT NULL,
     name TEXT NOT NULL,
     password_hash TEXT NOT NULL,
     password_salt TEXT NOT NULL,
@@ -61,6 +61,53 @@ addColumnIfMissing('submissions', 'community_id', "INTEGER");
 addColumnIfMissing('drafts', 'tenant_id', "INTEGER");
 addColumnIfMissing('drafts', 'community_id', "INTEGER");
 addColumnIfMissing('templates', 'tenant_id', "INTEGER");
+
+// V4.6：員編改為「公司內唯一」，不同公司可以使用相同員編（例如 A001）。
+// 舊版曾在 employee_id 上建立全系統 UNIQUE，這裡安全地重建 staff_users / staff_communities 後改用複合唯一索引。
+function migrateEmployeeIdUniqueness() {
+  const sql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='staff_users'").get()?.sql || '';
+  if (!/employee_id[^,]*\bUNIQUE\b/i.test(sql)) {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_staff_users_tenant_employee ON staff_users(tenant_id, employee_id)');
+    return;
+  }
+  db.pragma('foreign_keys = OFF');
+  try {
+    db.exec(`
+      ALTER TABLE staff_communities RENAME TO staff_communities_legacy;
+      ALTER TABLE staff_users RENAME TO staff_users_legacy;
+      CREATE TABLE staff_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        password_salt TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        role TEXT DEFAULT 'staff',
+        tenant_id INTEGER,
+        last_login_at TEXT DEFAULT '',
+        admin_level TEXT DEFAULT 'admin'
+      );
+      INSERT INTO staff_users (id,employee_id,name,password_hash,password_salt,is_active,created_at,updated_at,role,tenant_id,last_login_at,admin_level)
+        SELECT id,employee_id,name,password_hash,password_salt,is_active,created_at,updated_at,role,tenant_id,last_login_at,admin_level FROM staff_users_legacy;
+      CREATE UNIQUE INDEX idx_staff_users_tenant_employee ON staff_users(tenant_id, employee_id);
+      CREATE TABLE staff_communities (
+        staff_id INTEGER NOT NULL,
+        community_id INTEGER NOT NULL,
+        PRIMARY KEY (staff_id, community_id),
+        FOREIGN KEY (staff_id) REFERENCES staff_users(id) ON DELETE CASCADE,
+        FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE
+      );
+      INSERT INTO staff_communities (staff_id,community_id) SELECT staff_id,community_id FROM staff_communities_legacy;
+      DROP TABLE staff_communities_legacy;
+      DROP TABLE staff_users_legacy;
+    `);
+  } finally {
+    db.pragma('foreign_keys = ON');
+  }
+}
+migrateEmployeeIdUniqueness();
 
 // New tenant tables
 
