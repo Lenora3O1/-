@@ -157,85 +157,153 @@ a.link { color: var(--accent-dark); text-decoration: underline; cursor: pointer;
 .admin-manage-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid var(--border,#d9e3df)}
 .admin-manage-row:last-child{border-bottom:0}
 
-/* V4.2.7：重整三個工作區共用側邊欄
-   保留原本完整網站樣式，只替換側邊欄規則，避免覆蓋整份 styles.css。
+/* V4.2.8：側邊欄改為「推動式」展開
+   桌機：側欄從最左側固定，收合 76px；滑鼠移入後展開至 250px，
+   同時把 topbar 與主內容一起往右推，避免選單與標題互相遮住。
+   登入前完全隱藏側欄。手機維持抽屜式選單。
 */
 :root{--sidebar-width:250px;--sidebar-collapsed:76px;--topbar-height:76px}
 body{min-height:100vh;overflow-x:hidden}
-
-/* 桌機不需要空白的手動按鈕；手機才顯示 ☰ */
 .sidebar-toggle{display:none}
 
-/* 登入前完全不出現側邊欄 */
+/* 登入前：完全沒有側邊欄 */
 body:not(.is-authenticated) .app-sidebar{display:none!important}
 body:not(.is-authenticated) .sidebar-toggle{display:none!important}
 
-/* 桌機：左側固定窄欄，從標題列下方開始 */
-.app-sidebar{
-  position:fixed;left:0;top:var(--topbar-height);bottom:0;
-  width:var(--sidebar-collapsed);min-width:var(--sidebar-collapsed);
-  z-index:1050;background:#fff;border-right:1px solid var(--line);
-  box-shadow:4px 0 20px rgba(20,40,35,.08);
-  overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
-  transition:width .18s ease,box-shadow .18s ease,transform .18s ease;
-}
-.app-sidebar::-webkit-scrollbar{width:0;height:0}
-
-/* 收合時只留下圖示，不留一大片空白 */
-.sidebar-head{
-  height:16px;box-sizing:border-box;padding:0;
-  display:flex;flex-direction:column;justify-content:center;
-  overflow:hidden;border-bottom:0;background:#fff;
-}
-.sidebar-title,.sidebar-caption{display:none}
-
-.app-sidebar .nav-tabs{
-  display:flex;flex-direction:column;gap:5px;
-  margin:0;padding:12px 10px;border:0;
-}
-.app-sidebar .nav-tabs button{
-  display:flex;align-items:center;gap:10px;
-  width:56px;min-width:56px;min-height:44px;
-  margin:0 auto;justify-content:center;text-align:left;
-  background:transparent;color:var(--ink-soft);
-  border:0;border-left:3px solid transparent;border-radius:9px;
-  padding:11px 0;font-size:.95rem;font-weight:700;
-  white-space:nowrap;overflow:hidden;cursor:pointer;
-}
-.app-sidebar .nav-tabs button.active{color:var(--accent-dark);background:var(--accent-soft);border-left-color:var(--accent)}
-.app-sidebar .nav-tabs button:hover:not(:disabled){background:#f2f6f4;color:var(--accent-dark)}
-.app-sidebar .nav-tabs button.nav-disabled{opacity:.55;cursor:not-allowed}
-.app-sidebar .nav-disabled span{margin-left:auto;font-size:.68rem;font-weight:500;color:var(--ink-soft)}
-.app-sidebar .nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;font-size:1.1rem;line-height:1}
-.app-sidebar .nav-label{display:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* 登入後主內容固定位置；側欄展開不推動頁面 */
+/* ===== 桌機側邊欄 ===== */
 @media(min-width:901px){
-  .topbar{padding-left:24px;min-height:var(--topbar-height);position:relative;z-index:1100}
-  .shell{max-width:none;margin:0;padding:32px 34px 90px calc(var(--sidebar-collapsed) + 34px);transition:none}
+  .app-sidebar{
+    position:fixed;
+    left:0;top:0;bottom:0;
+    width:var(--sidebar-collapsed);
+    min-width:var(--sidebar-collapsed);
+    z-index:1200;
+    background:#fff;
+    border-right:1px solid var(--line);
+    box-shadow:4px 0 20px rgba(20,40,35,.08);
+    overflow-y:auto;
+    overflow-x:hidden;
+    scrollbar-width:none;
+    transition:width .20s ease,box-shadow .20s ease;
+  }
+  .app-sidebar::-webkit-scrollbar{width:0;height:0}
 
-  /* 滑鼠移入左側後，覆蓋式展開 */
+  .sidebar-head{
+    height:var(--topbar-height);
+    box-sizing:border-box;
+    padding:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    overflow:hidden;
+    border-bottom:1px solid var(--line);
+    background:#fff;
+  }
+  .sidebar-title,.sidebar-caption{display:none}
+
+  .app-sidebar .nav-tabs{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    margin:0;
+    padding:12px 10px;
+    border:0;
+  }
+  .app-sidebar .nav-tabs button{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:56px;
+    min-width:56px;
+    min-height:44px;
+    margin:0 auto;
+    justify-content:center;
+    text-align:left;
+    background:transparent;
+    color:var(--ink-soft);
+    border:0;
+    border-left:3px solid transparent;
+    border-radius:9px;
+    padding:11px 0;
+    font-size:.95rem;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    cursor:pointer;
+  }
+  .app-sidebar .nav-tabs button.active{color:var(--accent-dark);background:var(--accent-soft);border-left-color:var(--accent)}
+  .app-sidebar .nav-tabs button:hover:not(:disabled){background:#f2f6f4;color:var(--accent-dark)}
+  .app-sidebar .nav-tabs button.nav-disabled{opacity:.55;cursor:not-allowed}
+  .app-sidebar .nav-disabled span{margin-left:auto;font-size:.68rem;font-weight:500;color:var(--ink-soft)}
+  .app-sidebar .nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;font-size:1.1rem;line-height:1}
+  .app-sidebar .nav-label{display:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* 收合時，標題列與主內容預留 76px */
+  .topbar{
+    margin-left:var(--sidebar-collapsed);
+    padding-left:24px;
+    min-height:var(--topbar-height);
+    position:relative;
+    z-index:1100;
+    transition:margin-left .20s ease;
+  }
+  .shell{
+    max-width:none;
+    margin:0;
+    padding:32px 34px 90px calc(var(--sidebar-collapsed) + 34px);
+    transition:padding-left .20s ease;
+  }
+
+  /* 滑鼠移入：整個頁面一起往右推，不再互相遮住 */
   body.sidebar-hover .app-sidebar{
-    width:var(--sidebar-width);min-width:var(--sidebar-width);
+    width:var(--sidebar-width);
+    min-width:var(--sidebar-width);
     box-shadow:10px 0 32px rgba(20,40,35,.16);
   }
+  body.sidebar-hover .topbar{
+    margin-left:var(--sidebar-width);
+  }
+  body.sidebar-hover .shell{
+    padding-left:calc(var(--sidebar-width) + 34px);
+  }
+
   body.sidebar-hover .sidebar-head{
-    height:74px;padding:0 18px;
+    height:var(--topbar-height);
+    padding:0 18px;
     background:linear-gradient(180deg,var(--accent-soft),#fff);
     border-bottom:1px solid var(--line);
   }
-  body.sidebar-hover .sidebar-title{display:block;font-weight:800;color:var(--accent-dark);font-size:1.05rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  body.sidebar-hover .sidebar-caption{display:block;font-size:.74rem;color:var(--ink-soft);margin-top:3px;white-space:nowrap}
+  body.sidebar-hover .sidebar-title{
+    display:block;
+    font-weight:800;
+    color:var(--accent-dark);
+    font-size:1.05rem;
+    line-height:1.25;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  body.sidebar-hover .sidebar-caption{
+    display:block;
+    font-size:.74rem;
+    color:var(--ink-soft);
+    margin-top:3px;
+    white-space:nowrap;
+  }
   body.sidebar-hover .app-sidebar .nav-tabs button{
-    width:calc(100% - 20px);min-width:0;margin:0 10px;
-    justify-content:flex-start;gap:10px;padding:12px 13px;
+    width:calc(100% - 20px);
+    min-width:0;
+    margin:0 10px;
+    justify-content:flex-start;
+    gap:10px;
+    padding:12px 13px;
     border-left:3px solid transparent;
   }
   body.sidebar-hover .app-sidebar .nav-label{display:inline-block}
   body.sidebar-hover .app-sidebar .nav-icon{font-size:1.05rem}
 }
 
-/* 懸浮通知 */
+/* ===== 懸浮通知 ===== */
 .floating-notice{position:fixed;top:94px;right:24px;width:min(390px,calc(100vw - 48px));z-index:1005;background:rgba(238,248,253,.97);border:2px solid #18A9D0;border-radius:12px;padding:17px 46px 16px 18px;box-shadow:0 10px 30px rgba(18,87,110,.16);color:var(--ink);animation:noticeIn .25s ease-out}
 .floating-notice.is-closed{display:none}
 .floating-notice .notice-kicker{font-size:.78rem;font-weight:800;color:#08799a;margin-bottom:5px}
@@ -246,10 +314,11 @@ body:not(.is-authenticated) .sidebar-toggle{display:none!important}
 @keyframes noticeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 .sidebar-backdrop{display:none}
 
+/* ===== 手機 ===== */
 @media(max-width:900px){
-  .sidebar-toggle{display:block;position:fixed;top:12px;left:12px;z-index:1200;width:42px;height:42px;padding:0;border-radius:10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:1.2rem;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+  .sidebar-toggle{display:block;position:fixed;top:12px;left:12px;z-index:1300;width:42px;height:42px;padding:0;border-radius:10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:1.2rem;box-shadow:0 4px 16px rgba(0,0,0,.12)}
   body:not(.is-authenticated) .sidebar-toggle{display:none!important}
-  .app-sidebar{top:0;width:280px;min-width:280px;transform:translateX(-102%);box-shadow:10px 0 32px rgba(20,40,35,.16)}
+  .app-sidebar{top:0;left:0;width:280px;min-width:280px;transform:translateX(-102%);box-shadow:10px 0 32px rgba(20,40,35,.16)}
   body.sidebar-open .app-sidebar{transform:translateX(0)}
   .sidebar-head{height:76px;padding:0 18px;background:linear-gradient(180deg,var(--accent-soft),#fff);border-bottom:1px solid var(--line)}
   .sidebar-title,.sidebar-caption{display:block}
@@ -257,9 +326,9 @@ body:not(.is-authenticated) .sidebar-toggle{display:none!important}
   .sidebar-caption{font-size:.74rem;color:var(--ink-soft);margin-top:3px;white-space:nowrap}
   .app-sidebar .nav-tabs button{width:100%;min-width:0;margin:0;justify-content:flex-start;padding:12px 13px;border-left:3px solid transparent;font-size:.95rem}
   .app-sidebar .nav-label{display:inline-block}
-  .sidebar-backdrop{position:fixed;inset:0;display:none;background:rgba(0,0,0,.34);z-index:1040}
+  .sidebar-backdrop{position:fixed;inset:0;display:none;background:rgba(0,0,0,.34);z-index:1250}
   body.sidebar-open .sidebar-backdrop{display:block}
   .shell{max-width:900px;margin:0 auto;padding:24px 16px 80px}
-  .topbar{padding:16px 18px 16px 68px;min-height:76px}
+  .topbar{margin-left:0;padding:16px 18px 16px 68px;min-height:76px}
   .floating-notice{top:82px;right:12px;width:calc(100vw - 24px)}
 }
