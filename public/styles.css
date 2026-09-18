@@ -332,3 +332,22 @@ body:not(.is-authenticated) .sidebar-toggle{display:none!important}
   .topbar{margin-left:0;padding:16px 18px 16px 68px;min-height:76px}
   .floating-notice{top:82px;right:12px;width:calc(100vw - 24px)}
 }
+/* ===== 芫荽字體：V4.2.9 ===== */
+@font-face {
+  font-family: "Iansui";
+  src: url("/fonts/Iansui-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+html, body, button, input, textarea, select, option,
+label, table, th, td, .topbar, .panel, .nav-tabs,
+.app-sidebar, .sidebar-head, .floating-notice {
+  font-family: "Iansui", sans-serif !important;
+}
+
+h1, h2, h3, .topbar .brand {
+  font-family: "Iansui", sans-serif !important;
+}
+
