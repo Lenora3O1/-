@@ -365,6 +365,8 @@ h1, h2, h3, .topbar .brand {
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line,#d9e3df)}
 .modal-actions button{min-width:92px}
 .modal-note{padding:12px 14px;border-radius:10px;background:var(--accent-soft,#e7f1ed);margin:10px 0 16px;color:var(--ink-soft,#64736e)}
+.community-picker-modal{width:min(560px,calc(100vw - 44px))}.community-choice-list{display:grid;gap:10px}.community-choice{display:grid;grid-template-columns:32px 1fr 24px;align-items:center;gap:8px;width:100%;text-align:left;background:#fff;border:1px solid var(--line,#d9e3df);border-radius:12px;padding:14px 16px;color:var(--ink,#17312a);cursor:pointer}.community-choice:hover{border-color:var(--accent,#2F6F5E);background:var(--accent-soft,#e7f1ed);transform:translateY(-1px)}.community-choice strong{font-size:1rem}.community-choice>span:last-child{justify-self:end;font-size:1.2rem;color:var(--accent-dark,#204F42)}
+
 body.modal-open{overflow:hidden}
 @keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
 @media(max-width:700px){.modal-backdrop{padding:10px}.modal,.modal.modal-wide{width:calc(100vw - 20px);max-height:88vh;padding:20px 16px;border-radius:14px}.modal .editor-grid{grid-template-columns:1fr}.modal .editor-grid .wide{grid-column:auto}.modal-actions{flex-wrap:wrap}.modal-actions button{flex:1}}
@@ -393,3 +395,22 @@ h1,h2,h3{font-family:'Iansui','Microsoft JhengHei','Noto Sans TC',sans-serif}
 .dashboard-date{font-size:1.15rem;color:var(--ink-soft);margin-top:4px}.dashboard-time{font-size:2.6rem;font-weight:800;color:var(--accent-dark);letter-spacing:.03em;line-height:1.1;margin-top:4px}
 .dashboard-todo{min-height:180px}.todo-empty{border:1px dashed var(--line);border-radius:12px;padding:22px;color:var(--ink-soft);background:#fbfcfb}.todo-empty span{display:block;font-size:.9rem;margin-top:5px}
 @media(max-width:700px){.dashboard-grid{grid-template-columns:1fr}.dashboard-time{font-size:2.1rem}}
+
+/* V4.5：個人工作台釘選 */
+.app-sidebar .menu-pin-btn{display:inline-flex;align-items:center;justify-content:center;flex:0 0 30px;width:30px!important;min-width:30px!important;height:30px;min-height:30px!important;margin-left:auto!important;padding:0!important;border:0!important;border-radius:7px!important;background:transparent!important;color:#9aa7a2!important;font-size:1.05rem!important;line-height:1;opacity:.75}
+.app-sidebar .menu-pin-btn:hover{background:var(--accent-soft)!important;color:var(--accent-dark)!important;opacity:1}
+.app-sidebar .menu-pin-btn[data-pinned="1"]{color:var(--gold)!important;opacity:1}
+@media(min-width:901px){
+  .app-sidebar:not(body.sidebar-hover) .menu-pin-btn{display:none}
+  body.sidebar-hover .app-sidebar .menu-pin-btn{display:inline-flex}
+}
+.pinned-work-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.pinned-work-card{width:100%;min-height:82px;padding:13px 14px;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;text-align:left;gap:11px;box-shadow:none}
+.pinned-work-card:hover{background:var(--accent-soft);color:var(--accent-dark);border-color:#bfd6cc}
+.pinned-work-icon{width:34px;height:34px;flex:0 0 34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--accent-soft);font-size:1.15rem}
+.pinned-work-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.pinned-work-body strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pinned-work-body small{color:var(--ink-soft);font-size:.76rem}.pinned-work-arrow{font-size:1.1rem;color:var(--ink-soft)}
+.pinned-empty{padding:28px 18px;text-align:center;border:1px dashed var(--line);border-radius:12px;background:#fbfcfb;color:var(--ink-soft)}
+.pinned-empty-icon{font-size:2rem;color:#a6b1ac;line-height:1;margin-bottom:8px}.pinned-empty strong{display:block;color:var(--accent-dark);margin-bottom:4px}.pinned-empty span{font-size:.85rem}
+.workspace-placeholder{max-width:900px}.workspace-placeholder h1{margin-bottom:8px}.workspace-placeholder p{color:var(--ink-soft)}.placeholder-note{margin-top:18px;padding:14px 16px;border-radius:10px;background:var(--accent-soft);color:var(--accent-dark)}
+@media(max-width:900px){.app-sidebar .menu-pin-btn{display:inline-flex}.pinned-work-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.pinned-work-list{grid-template-columns:1fr}.pinned-work-card{min-height:72px}}

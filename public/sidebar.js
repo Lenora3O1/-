@@ -27,37 +27,81 @@
     toggle?.addEventListener('click',()=>{if(mobile())document.body.classList.toggle('sidebar-open');else document.body.classList.toggle('sidebar-hover')});
     backdrop?.addEventListener('click',()=>document.body.classList.remove('sidebar-open'));
   }
-  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-  function renderItems(items){
+  function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  async function togglePin(menuId,pinBtn){
+    try{
+      const pinned=pinBtn.dataset.pinned==='1';
+      const r=await fetch(pinned?`/api/staff/dashboard-pins/${encodeURIComponent(menuId)}`:'/api/staff/dashboard-pins',{method:pinned?'DELETE':'POST',credentials:'same-origin',headers:pinned?{}:{'Content-Type':'application/json'},body:pinned?undefined:JSON.stringify({menu_id:menuId})});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(d.error||'釘選設定失敗');
+      pinBtn.dataset.pinned=pinned?'0':'1';
+      pinBtn.textContent=pinned?'☆':'★';
+      pinBtn.title=pinned?'釘選到我的工作台':'已釘選；點一下取消釘選';
+      document.dispatchEvent(new CustomEvent('dashboard-pins-changed'));
+    }catch(e){alert(e.message||'釘選設定失敗');}
+  }
+  function makePinButton(item,pinned){
+    const p=document.createElement('button');
+    p.type='button';p.className='menu-pin-btn';p.dataset.pinned=pinned?'1':'0';p.textContent=pinned?'★':'☆';
+    p.title=pinned?'已釘選；點一下取消釘選':'釘選到我的工作台';p.setAttribute('aria-label',p.title);
+    p.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();togglePin(item.id,p);});
+    return p;
+  }
+  function renderItems(items,pinnedIds=new Set()){
     const nav=sidebar?.querySelector('.nav-tabs'); if(!nav)return;
     nav.innerHTML='';
     const byParent={}; for(const x of items){const p=x.parentId||'__root';(byParent[p] ||= []).push(x)}
+    function emit(item){
+      nav.querySelectorAll('button:not(.menu-pin-btn)').forEach(x=>x.classList.remove('active'));
+      if(mobile())document.body.classList.remove('sidebar-open');
+      document.dispatchEvent(new CustomEvent('workspace-menu',{detail:{action:item.action,id:item.id,label:item.label}}));
+    }
     function add(parent,depth){
       for(const item of (byParent[parent]||[])){
-        const btn=document.createElement('button'); btn.type='button'; btn.className=depth?'menu-child':''; btn.dataset.menuAction=item.action||'placeholder'; btn.dataset.menuId=item.id; btn.innerHTML=`<span class="nav-icon">${esc(item.icon||'•')}</span><span class="nav-label">${esc(item.label||'未命名功能')}</span>`;
         const children=byParent[item.id]||[];
-        if(children.length){btn.classList.add('menu-parent');btn.setAttribute('aria-expanded','true');}
-        btn.addEventListener('click',()=>{
-          if(children.length){
-            const open=btn.getAttribute('aria-expanded')!=='false'; btn.setAttribute('aria-expanded',String(!open));
-            const box=btn.nextElementSibling; if(box)box.classList.toggle('is-collapsed',open); return;
-          }
-          nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
-          if(mobile())document.body.classList.remove('sidebar-open');
-          document.dispatchEvent(new CustomEvent('workspace-menu',{detail:{action:item.action,id:item.id,label:item.label}}));
-        });
+        const btn=document.createElement('button');
+        btn.type='button';btn.className=depth?'menu-child':'';btn.dataset.menuAction=item.action||'placeholder';btn.dataset.menuId=item.id;
+        btn.innerHTML=`<span class="nav-icon">${esc(item.icon||'•')}</span><span class="nav-label">${esc(item.label||'未命名功能')}</span>`;
+        if(children.length){
+          btn.classList.add('menu-parent');btn.setAttribute('aria-expanded','false');
+          btn.addEventListener('click',()=>{
+            const open=btn.getAttribute('aria-expanded')!=='false';
+            btn.setAttribute('aria-expanded',String(!open));
+            const box=btn.nextElementSibling;if(box)box.classList.toggle('is-collapsed',open);
+          });
+        }else{
+          btn.addEventListener('click',()=>emit(item));
+          btn.appendChild(makePinButton(item,pinnedIds.has(String(item.id))));
+        }
         nav.appendChild(btn);
-        if(children.length){const childBox=document.createElement('div');childBox.className='menu-children';nav.appendChild(childBox);for(const child of children){
-            const cbtn=document.createElement('button');cbtn.type='button';cbtn.className='menu-child';cbtn.dataset.menuAction=child.action||'placeholder';cbtn.dataset.menuId=child.id;cbtn.innerHTML=`<span class="nav-icon">${esc(child.icon||'↳')}</span><span class="nav-label">${esc(child.label||'未命名功能')}</span>`;
-            cbtn.addEventListener('click',()=>{nav.querySelectorAll('button').forEach(x=>x.classList.remove('active'));cbtn.classList.add('active');if(mobile())document.body.classList.remove('sidebar-open');document.dispatchEvent(new CustomEvent('workspace-menu',{detail:{action:child.action,id:child.id,label:child.label}}));});childBox.appendChild(cbtn);
-          }}
+        if(children.length){
+          const childBox=document.createElement('div');childBox.className='menu-children is-collapsed';nav.appendChild(childBox);
+          for(const child of children){
+            const cbtn=document.createElement('button');cbtn.type='button';cbtn.className='menu-child';cbtn.dataset.menuAction=child.action||'placeholder';cbtn.dataset.menuId=child.id;
+            cbtn.innerHTML=`<span class="nav-icon">${esc(child.icon||'↳')}</span><span class="nav-label">${esc(child.label||'未命名功能')}</span>`;
+            cbtn.addEventListener('click',()=>emit(child));
+            cbtn.appendChild(makePinButton(child,pinnedIds.has(String(child.id))));
+            childBox.appendChild(cbtn);
+          }
+        }
       }
     }
     add('__root',0);
   }
   async function loadDynamicSidebar(scope){
     if(!sidebar)return;
-    try{const r=await fetch(scope==='company'?'/api/company/menu-config':'/api/staff/menu-config',{credentials:'same-origin'});if(!r.ok)return;const d=await r.json();renderItems(Array.isArray(d.items)?d.items:[]);}catch(e){console.warn('Dynamic menu load skipped',e)}
+    try{
+      const menuUrl=scope==='company'?'/api/company/menu-config':'/api/staff/menu-config';
+      if(scope==='staff'){
+        const [mr,pr]=await Promise.all([fetch(menuUrl,{credentials:'same-origin'}),fetch('/api/staff/dashboard-pins',{credentials:'same-origin'})]);
+        if(!mr.ok)return;
+        const md=await mr.json(); const pd=pr.ok?await pr.json():{pins:[]};
+        const ids=new Set((Array.isArray(pd.pins)?pd.pins:[]).map(x=>String(x.menu_id)));
+        renderItems(Array.isArray(md.items)?md.items:[],ids);
+      }else{
+        const r=await fetch(menuUrl,{credentials:'same-origin'});if(!r.ok)return;const d=await r.json();renderItems(Array.isArray(d.items)?d.items:[]);
+      }
+    }catch(e){console.warn('Dynamic menu load skipped',e)}
   }
   window.refreshWorkspaceMenu=loadDynamicSidebar;
   setupShell();
