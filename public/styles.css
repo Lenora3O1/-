@@ -203,59 +203,74 @@ body:not(.is-authenticated) .app-sidebar{display:none}
   .floating-notice{top:82px;right:12px;width:calc(100vw - 24px)}
 }
 
-/* V4.2.2：桌機側欄改為「平時收合、滑鼠移入左側自動展開、移出自動收回」 */
+/* ===== V4.2.5：三個工作區共用的左側隱藏式選單 =====
+   桌機：平時只顯示圖示，滑鼠移入後展開文字。
+   手機：登入後由左上角按鈕開啟抽屜。
+   登入前：完全不顯示側邊欄與選單按鈕。
+*/
+body{min-height:100vh;overflow-x:hidden}
+:root{--sidebar-width:248px;--sidebar-collapsed:76px}
+
+.topbar{padding-left:76px;min-height:76px;position:relative;z-index:1000}
+.sidebar-toggle{position:fixed;left:14px;top:13px;z-index:1003;width:42px;height:42px;padding:0;border-radius:10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:1.2rem;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.sidebar-toggle:hover{background:rgba(255,255,255,.18)}
+
+.app-sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-collapsed);min-width:var(--sidebar-collapsed);z-index:1002;background:#fff;border-right:1px solid var(--line);box-shadow:8px 0 28px rgba(20,40,35,.08);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;transition:width .2s ease,box-shadow .2s ease,transform .2s ease}
+.app-sidebar::-webkit-scrollbar{width:0;height:0}
+.sidebar-head{padding:86px 18px 18px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--accent-soft),#fff);overflow:hidden}
+.sidebar-title{font-weight:800;color:var(--accent-dark);font-size:1.05rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-caption{font-size:.74rem;color:var(--ink-soft);margin-top:3px;white-space:nowrap}
+
+.app-sidebar .nav-tabs{display:flex;flex-direction:column;gap:5px;margin:0;padding:12px 10px;border:0}
+.app-sidebar .nav-tabs button{display:flex;align-items:center;gap:10px;width:56px;min-width:56px;min-height:44px;margin:0 auto;justify-content:center;text-align:left;background:transparent;color:var(--ink-soft);border:0;border-left:3px solid transparent;border-radius:9px;padding:12px 0;font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden}
+.app-sidebar .nav-tabs button.active{color:var(--accent-dark);background:var(--accent-soft);border-left-color:var(--accent)}
+.app-sidebar .nav-tabs button:hover:not(:disabled){background:#f2f6f4;color:var(--accent-dark)}
+.app-sidebar .nav-tabs button.nav-disabled{opacity:.55;cursor:not-allowed}
+.app-sidebar .nav-disabled span{margin-left:auto;font-size:.68rem;font-weight:500;color:var(--ink-soft)}
+
+.app-sidebar .nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;font-size:1.1rem;line-height:1}
+.app-sidebar .nav-label{display:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+body:not(.is-authenticated) .app-sidebar,
+body:not(.is-authenticated) .sidebar-toggle{display:none}
+
 @media(min-width:901px){
-  .app-sidebar{width:var(--sidebar-collapsed);}
-  body.sidebar-collapsed .app-sidebar{width:var(--sidebar-collapsed);}
-  body.sidebar-collapsed .shell{padding-left:calc(var(--sidebar-collapsed) + 34px)}
-  body.sidebar-hover .app-sidebar{width:var(--sidebar-width);}
-  body.sidebar-hover .app-sidebar .sidebar-head{padding-left:18px;padding-right:18px;}
-  body.sidebar-hover .sidebar-title,body.sidebar-hover .sidebar-caption{font-size:revert;}
-  body.sidebar-hover .app-sidebar .nav-tabs button{font-size:revert;justify-content:flex-start;padding:12px 13px;border-left:3px solid transparent;}
-  body.sidebar-hover .app-sidebar .nav-tabs button::first-letter{font-size:revert;}
+  .shell{max-width:none;margin:0;padding:32px 34px 90px calc(var(--sidebar-collapsed) + 34px);transition:padding-left .2s ease}
+  .sidebar-title,.sidebar-caption{font-size:0}
+
+  body.sidebar-hover .app-sidebar{width:var(--sidebar-width);min-width:var(--sidebar-width);box-shadow:10px 0 32px rgba(20,40,35,.14)}
+  body.sidebar-hover .app-sidebar .sidebar-head{padding-left:18px;padding-right:18px}
+  body.sidebar-hover .sidebar-title{font-size:1.05rem}
+  body.sidebar-hover .sidebar-caption{font-size:.74rem}
+  body.sidebar-hover .app-sidebar .nav-tabs button{width:calc(100% - 20px);min-width:0;margin:0 10px;justify-content:flex-start;padding:12px 13px;border-left:3px solid transparent;font-size:.95rem}
+  body.sidebar-hover .app-sidebar .nav-label{display:inline-block}
+  body.sidebar-hover .app-sidebar .nav-icon{font-size:1.05rem}
   body.sidebar-hover .shell{padding-left:calc(var(--sidebar-width) + 34px)}
 }
 
-/* 收合時只保留圖示；不顯示瀏覽器捲軸 */
-body.sidebar-collapsed .app-sidebar{overflow-y:auto;scrollbar-width:none;}
-body.sidebar-collapsed .app-sidebar::-webkit-scrollbar{width:0;height:0;}
-body.sidebar-collapsed .sidebar-title,body.sidebar-collapsed .sidebar-caption,body.sidebar-collapsed .app-sidebar .nav-tabs button{font-size:0;}
-body.sidebar-collapsed .app-sidebar .nav-tabs button{justify-content:center;padding:11px 8px;border-left:0;border-radius:10px;}
-body.sidebar-collapsed .app-sidebar .nav-tabs button::first-letter{font-size:1.05rem;}
-body.sidebar-hover .app-sidebar{box-shadow:10px 0 32px rgba(20,40,35,.14);}
-
-/* 滑鼠移到左側時，讓內容平順讓出空間；不影響手機抽屜 */
-@media(min-width:901px){
-  .shell{transition:padding-left .2s ease;}
-  .app-sidebar{transition:width .2s ease,box-shadow .2s ease;}
-}
-
-
-/* V4.2.3：登入前不顯示側邊欄；收合狀態穩定顯示 Emoji 圖示 */
-body:not(.is-authenticated) .app-sidebar,
-body:not(.is-authenticated) .sidebar-toggle{display:none;}
-.app-sidebar .nav-tabs button{display:flex;align-items:center;gap:10px;}
-.app-sidebar .nav-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 24px;width:24px;font-size:1.05rem;line-height:1;}
-.app-sidebar .nav-label{display:inline-block;overflow:hidden;text-overflow:ellipsis;}
-body.sidebar-collapsed .app-sidebar .nav-tabs button{gap:0;}
-body.sidebar-collapsed .app-sidebar .nav-label{display:none;}
-body.sidebar-collapsed .app-sidebar .nav-icon{display:inline-flex;font-size:1.1rem;}
-body.sidebar-hover .app-sidebar .nav-label{display:inline-block;}
-body.sidebar-hover .app-sidebar .nav-icon{font-size:1.05rem;}
 @media(max-width:900px){
-  body:not(.is-authenticated) .sidebar-toggle{display:none;}
-  body.sidebar-open .sidebar-toggle{display:block;}
-  .app-sidebar .nav-label{display:inline-block;}
+  .sidebar-toggle{top:12px;left:12px}
+  .app-sidebar{width:280px;min-width:280px;transform:translateX(-102%)}
+  body.sidebar-open .app-sidebar{transform:translateX(0)}
+  .sidebar-backdrop{position:fixed;inset:0;display:none;background:rgba(0,0,0,.34);z-index:1001}
+  body.sidebar-open .sidebar-backdrop{display:block}
+  .shell{max-width:900px;margin:0 auto;padding:24px 16px 80px}
+  .topbar{padding:16px 18px 16px 68px}
+  .app-sidebar .nav-tabs button{width:100%;min-width:0;margin:0;justify-content:flex-start;padding:12px 13px;border-left:3px solid transparent;font-size:.95rem}
+  .app-sidebar .nav-label{display:inline-block}
+  body:not(.is-authenticated) .sidebar-toggle{display:none}
+  body.sidebar-open .sidebar-toggle{display:block}
 }
 
-/* V4.2.4：桌機側邊欄真正收合／滑鼠移入展開 */
-@media (min-width:901px){
-body.sidebar-collapsed .app-sidebar{width:76px;min-width:76px;overflow:visible;}
-body.sidebar-collapsed .app-sidebar .nav-tabs{width:76px;}
-body.sidebar-collapsed .app-sidebar .nav-tabs button{width:56px;min-width:56px;margin:0 auto;justify-content:center;padding:12px 0;}
-body.sidebar-collapsed .app-sidebar .nav-label{display:none;}
-body.sidebar-hover .app-sidebar{width:250px;min-width:250px;}
-body.sidebar-hover .app-sidebar .nav-tabs{width:250px;}
-body.sidebar-hover .app-sidebar .nav-tabs button{width:calc(100% - 20px);margin:0 10px;justify-content:flex-start;padding:12px 14px;}
-body.sidebar-hover .app-sidebar .nav-label{display:inline-block;}
+.floating-notice{position:fixed;top:94px;right:24px;width:min(390px,calc(100vw - 48px));z-index:999;background:rgba(238,248,253,.97);border:2px solid #18A9D0;border-radius:12px;padding:17px 46px 16px 18px;box-shadow:0 10px 30px rgba(18,87,110,.16);color:var(--ink);animation:noticeIn .25s ease-out}
+.floating-notice.is-closed{display:none}
+.floating-notice .notice-kicker{font-size:.78rem;font-weight:800;color:#08799a;margin-bottom:5px}
+.floating-notice strong{display:block;color:#164f60;margin-bottom:4px}
+.floating-notice p{margin:0;color:#45636b;font-size:.83rem;line-height:1.55}
+.notice-close{position:absolute;right:9px;top:8px;width:30px;height:30px;padding:0;border-radius:50%;background:transparent;color:#17657b;border:0;font-size:1.5rem;line-height:1}
+.notice-close:hover{background:rgba(24,169,208,.12);color:#0b5367}
+@keyframes noticeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:900px){
+  .floating-notice{top:82px;right:12px;width:calc(100vw - 24px)}
 }
